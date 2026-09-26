@@ -16,9 +16,12 @@
 """
 
 import argparse
+import csv
 import datetime
+import io
 import re
 import sys
+import unicodedata
 from pathlib import Path
 
 import openpyxl
@@ -57,9 +60,9 @@ def parse_class_file(path):
     grade = cls = None
     for r in rows[:15]:
         for v in r:
-            m = re.fullmatch(r"\s*(\d+)年(\d+)組\s*", str(v or ""))
+            m = re.fullmatch(r"\s*(\d+)年(\S+?)組\s*", unicodedata.normalize("NFKC", str(v or "")))
             if m:
-                grade, cls = int(m.group(1)), int(m.group(2))
+                grade, cls = int(m.group(1)), normalize_cls(m.group(2))
                 break
         if grade:
             break
@@ -107,50 +110,67 @@ def parse_class_file(path):
     return result
 
 
-def normalize_class_key(grade, cls, no):
-    g = _num(re.sub(r"[^\d.]", "", str(grade))) if grade not in (None, "") else None
-    c = str(cls or "")
-    m = re.search(r"(\d+)組", c)
-    c = _num(m.group(1)) if m else _num(re.sub(r"[^\d.]", "", c))
-    n = _num(re.sub(r"[^\d.]", "", str(no or "")))
-    return g, c, n
+def normalize_cls(v):
+    """組の表記をそろえる: 「1」「1組」「１」→ 1、「FA１」→ "FA1"（数字以外を含む組は文字列のまま）。"""
+    c = unicodedata.normalize("NFKC", str(v if v is not None else "")).strip()
+    c = re.sub(r"組$", "", c)
+    n = _num(c)
+    return n if n is not None else c
+
+
+def cls_order(c):
+    return (0, c, "") if isinstance(c, (int, float)) else (1, 0, str(c))
+
+
+def _read_rows(path):
+    path = Path(path)
+    if path.suffix.lower() == ".csv":
+        text = path.read_bytes()
+        for enc in ("utf-8-sig", "cp932"):
+            try:
+                return list(csv.reader(io.StringIO(text.decode(enc))))
+            except UnicodeDecodeError:
+                continue
+        raise ValueError(f"{path.name}: 文字コードを判別できません")
+    ws = openpyxl.load_workbook(path, data_only=True).worksheets[0]
+    return [list(r) for r in ws.iter_rows(values_only=True)]
 
 
 def read_club_list(path):
-    """クラブ一覧(学年・組・番号・氏名・クラブの列を持つ表)を読む。列名で自動判別する。"""
-    ws = openpyxl.load_workbook(path, data_only=True).worksheets[0]
-    rows = [list(r) for r in ws.iter_rows(values_only=True)]
-    want = {"学年": None, "組": None, "番号": None, "氏名": None, "クラブ": None}
-    alias = {"学年": ["学年"], "組": ["組", "クラス"], "番号": ["番号", "出席番号", "No", "No."],
-             "氏名": ["氏名", "名前", "生徒名"], "クラブ": ["クラブ", "部活動", "部活", "クラブ名", "所属クラブ", "部"]}
+    """クラブ一覧(学年・組・番号・クラブの列を持つ表。.xlsx / .csv)を読む。列名で自動判別する。
+
+    「◎」などの印は取り除く。兼部は「、」「,」区切りで複数行に展開する。
+    """
+    rows = _read_rows(path)
+    # 見出しの候補（先に書いたものを優先）
+    alias = {"学年": ["学年", "年"], "組": ["組", "クラス"], "番号": ["番号", "番", "出席番号"],
+             "氏名": ["氏名", "名前", "生徒名"],
+             "クラブ": ["クラブ", "所属クラブ", "クラブ名", "部活動", "部活", "所属", "部"]}
     for hi, r in enumerate(rows[:20]):
         cells = [str(v or "").strip() for v in r]
         found = {}
         for k, names in alias.items():
-            for ci, v in enumerate(cells):
-                if v in names:
-                    found[k] = ci
+            for name in names:
+                if name in cells:
+                    found[k] = cells.index(name)
                     break
-        if "クラブ" in found and ("氏名" in found or "番号" in found):
-            want.update(found)
+        if {"クラブ", "学年", "組", "番号"} <= found.keys():
             break
     else:
-        raise ValueError("クラブ一覧に「クラブ」「氏名」などの見出し行が見つかりません")
+        raise ValueError("クラブ一覧に「学年(年)」「組」「番号(番)」「クラブ(所属)」の見出し行が見つかりません")
     out = []
     for r in rows[hi + 1:]:
-        get = lambda k: r[want[k]] if want[k] is not None and want[k] < len(r) else None
-        club = get("クラブ")
-        if club in (None, ""):
+        get = lambda k: r[found[k]] if k in found and found[k] < len(r) else None
+        club = str(get("クラブ") or "").strip()
+        if not club:
             continue
-        g, c, n = normalize_class_key(get("学年"), get("組"), get("番号"))
-        # 「3年1組」のように組の列に学年が含まれる場合
-        m = re.search(r"(\d+)年(\d+)組", str(get("組") or ""))
-        if m:
-            g, c = int(m.group(1)), int(m.group(2))
-        for cl in re.split(r"[、,/・]", str(club)):
-            if cl.strip():
-                out.append({"学年": g, "組": c, "番号": n, "氏名": str(get("氏名") or "").strip(),
-                            "クラブ": cl.strip()})
+        g = _num(unicodedata.normalize("NFKC", str(get("学年") or "")).replace("年", ""))
+        c = normalize_cls(get("組"))
+        n = _num(unicodedata.normalize("NFKC", str(get("番号") or "")))
+        for cl in re.split(r"[、,，]", club):
+            cl = cl.strip().lstrip("◎○●☆★◇◆").strip()
+            if cl:
+                out.append({"学年": g, "組": c, "番号": n, "氏名": str(get("氏名") or "").strip(), "クラブ": cl})
     return out
 
 
@@ -256,7 +276,7 @@ def build(students, out_path, clubs=None, master=None, sources=()):
              "科目マスタ", "設定"]
     sh = {n: wb.create_sheet(n) for n in names}
     grades = sorted({s["学年"] for s in students})
-    classes = sorted({(s["学年"], s["組"]) for s in students})
+    classes = sorted({(s["学年"], s["組"]) for s in students}, key=lambda k: (k[0], cls_order(k[1])))
     subjects = []
     for s in students:
         for x in s["科目"]:
@@ -740,7 +760,7 @@ def main():
         students += st
         sources.append(p.name)
         print(f"{p.name}: {st[0]['学年']}年{st[0]['組']}組 {len(st)}名", file=sys.stderr)
-    students.sort(key=lambda s: (s["学年"], s["組"], s["番号"]))
+    students.sort(key=lambda s: (s["学年"], cls_order(s["組"]), s["番号"]))
     clubs = read_club_list(a.club) if a.club else None
     master = read_master(a.master) if a.master else None
     build(students, a.output, clubs, master, sources)
