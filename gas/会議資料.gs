@@ -326,6 +326,15 @@ function KG_parseClassRows_(rows, fileName) {
 
 // ---------------------------------------------------------------- 推薦生徒一覧（純粋関数）
 
+/** 推薦生徒一覧での組の書き方をクラス評定一覧に合わせる（Nu1→N1、G1→GC1） */
+var KG_RECOMMEND_CLASS_ALIAS = [[/^Nu(\d+)$/i, 'N$1'], [/^G(\d+)$/, 'GC$1']];
+
+function KG_recCls_(v) {
+  var c = KG_normCls_(v);
+  KG_RECOMMEND_CLASS_ALIAS.forEach(function (a) { c = c.replace(a[0], a[1]); });
+  return c;
+}
+
 /** 推薦生徒一覧の値（見出し: 年・組・番・所属）→ [{grade, label, no, raw, org}] */
 function KG_readRecommend_(values, warnings) {
   var alias = { grade: ['年', '学年'], cls: ['組', 'クラス'], no: ['番', '番号', '出席番号'], org: ['所属', 'クラブ', '部活動', 'コース'] };
@@ -348,7 +357,7 @@ function KG_readRecommend_(values, warnings) {
     raw.split(/[、,，]/).forEach(function (part) {
       part = part.trim();
       if (!part) return;
-      out.push({ grade: g, label: g + '年' + KG_normCls_(r[col.cls]) + '組', no: n, raw: part });
+      out.push({ grade: g, label: g + '年' + KG_recCls_(r[col.cls]) + '組', no: n, raw: part });
     });
   });
   // 表記ゆれの統一: 印を除き、「女子サッカー」→「女子サッカー部」のように既存の部名へ寄せる
@@ -384,6 +393,7 @@ function KG_buildModel_(students, failRows, moves, recs, conf, warnings) {
   students.forEach(function (s) {
     var g = s.subjects.filter(function (x) { return x.grade !== null; }).map(function (x) { return x.grade; });
     s.key = key(s.label, s.no);
+    s.course = KG_course_(s.cls);
     s.count = g.length;
     s.sum = g.reduce(function (a, b) { return a + b; }, 0);
     s.avg = g.length ? KG_round_(s.sum / g.length, 4) : null;
@@ -475,10 +485,10 @@ function KG_buildModel_(students, failRows, moves, recs, conf, warnings) {
     return (orgs[a].kind === orgs[b].kind ? 0 : orgs[a].kind === 'クラブ' ? -1 : 1) || (a < b ? -1 : a > b ? 1 : 0);
   });
   orgNames.forEach(function (o) {
-    var groups = [['全学年', orgs[o].list]];
+    var groups = [];
     gradeKeys.forEach(function (g) {
       var l = orgs[o].list.filter(function (s) { return s.grade === g; });
-      if (l.length) groups.push([g + '年', l]);
+      if (l.length) groups.push([g, l]);
     });
     groups.forEach(function (gr) {
       var l = gr[1], withAvg = l.filter(function (s) { return s.avg !== null; });
@@ -527,115 +537,175 @@ function KG_buildModel_(students, failRows, moves, recs, conf, warnings) {
     recs: recs, orgRows: orgRows, aliasRows: aliasRows, subjDist: subjDist, conf: conf };
 }
 
-/** 会議資料の各表（見出し＋行）を作る。 */
+/** コース（組の表記から判定） */
+var KG_COURSES = [
+  ['自己創造／ウォラーレ', /^\d+$/],
+  ['GC／CBE', /^(GC|CBE)\d*$/],
+  ['SS', /^SS\d*$/],
+  ['FA', /^FA\d*$/],
+  ['看護科', /^N\d*$/]
+];
+
+function KG_course_(cls) {
+  for (var i = 0; i < KG_COURSES.length; i++) if (KG_COURSES[i][1].test(String(cls))) return KG_COURSES[i][0];
+  return 'その他';
+}
+
+function KG_courseOrder_(c) {
+  for (var i = 0; i < KG_COURSES.length; i++) if (KG_COURSES[i][0] === c) return i;
+  return KG_COURSES.length;
+}
+
+/** 会議資料の各表を作る。学年別の表は {学年: [見出し, 行...]} の形。 */
 function KG_tables_(model) {
   var conf = model.conf;
   var sortSt = function (a, b) { return a.grade - b.grade || KG_clsOrder_(a.cls, b.cls) || a.no - b.no; };
   var all = model.students.slice().sort(sortSt);
   var orgsOf = function (s) { return s.orgs.join('、'); };
   var avgOf = function (s) { return s.avg === null ? '' : s.avg; };
+  var rankOf = function (s) { return s.rank ? s.rank + '／' + s.rankOf : ''; };
+  var byGrade = function (header, rowsOf) {
+    var out = {};
+    model.gradeKeys.forEach(function (g) { out[g] = [header].concat(rowsOf(g)); });
+    return out;
+  };
+  var inGrade = function (g) { return all.filter(function (s) { return s.grade === g; }); };
   var T = {};
 
-  // 概要（学年別）
-  T.summary = [['学年', '在籍（帳票）', '評定のある生徒', '評定平均値（学年平均）', '履修不認定（件）', '単位不認定（件）',
-    '皆勤者', '登校不調者', '推薦生徒', '推薦生徒の評定平均値', '推薦生徒 要確認']];
+  // 概要（学年×コース、学年計、全体計）
+  var sumRow = function (g, course, list) {
+    var graded = list.filter(function (s) { return s.avg !== null && !s.move; });
+    var avg = KG_mean_(graded.map(function (s) { return s.avg; }));
+    var rec = list.filter(function (s) { return s.orgs.length; });
+    var recAvg = KG_mean_(rec.filter(function (s) { return s.avg !== null; }).map(function (s) { return s.avg; }));
+    var ga = typeof g === 'number' ? model.gradeAvg[g] : null;
+    var cnt = function (kind) {
+      return list.reduce(function (n, s) { return n + s.fails.filter(function (f) { return f.kind === kind; }).length; }, 0);
+    };
+    return [typeof g === 'number' ? g + '年' : g, course, list.length, graded.length, avg === null ? '' : avg,
+      avg === null || ga === null || course === '学年計' ? '' : avg - ga,
+      cnt('履修不認定'), cnt('単位不認定'), list.filter(function (s) { return s.nFail; }).length,
+      list.filter(function (s) { return s.perfect; }).length, list.filter(function (s) { return s.poor; }).length,
+      rec.length, recAvg === null ? '' : recAvg, rec.filter(function (s) { return s.recCheck; }).length];
+  };
+  T.summary = [['学年', 'コース', '在籍（帳票）', '評定のある生徒', '評定平均値', '学年平均との差', '履修不認定（件）',
+    '単位不認定（件）', '不認定のある生徒', '皆勤者', '登校不調者', '推薦生徒', '推薦生徒の評定平均値', '推薦生徒 要確認']];
+  T.summaryTotals = [];
   model.gradeKeys.forEach(function (g) {
-    var l = model.grades[g];
-    var rec = l.filter(function (s) { return s.orgs.length; });
-    var f = model.fails.filter(function (x) { return x.label.indexOf(g + '年') === 0; });
-    T.summary.push([g + '年', l.length, l.filter(function (s) { return s.avg !== null && !s.move; }).length,
-      model.gradeAvg[g] === null ? '' : model.gradeAvg[g],
-      f.filter(function (x) { return x.kind === '履修不認定'; }).length, f.filter(function (x) { return x.kind === '単位不認定'; }).length,
-      l.filter(function (s) { return s.perfect; }).length, l.filter(function (s) { return s.poor; }).length, rec.length,
-      KG_mean_(rec.filter(function (s) { return s.avg !== null; }).map(function (s) { return s.avg; })) || '',
-      rec.filter(function (s) { return s.recCheck; }).length]);
+    var l = inGrade(g);
+    var courses = [];
+    l.forEach(function (s) { if (courses.indexOf(s.course) < 0) courses.push(s.course); });
+    courses.sort(function (a, b) { return KG_courseOrder_(a) - KG_courseOrder_(b); });
+    courses.forEach(function (c) { T.summary.push(sumRow(g, c, l.filter(function (s) { return s.course === c; }))); });
+    T.summary.push(sumRow(g, '学年計', l));
+    T.summaryTotals.push(T.summary.length - 1);
   });
+  T.summary.push(sumRow('全学年', '合計', all));
+  T.summaryTotals.push(T.summary.length - 1);
 
   // 不認定一覧（成績確認結果より）
-  T.fails = [['クラス', '番号', '氏名', '区分', '科目名', '欠時数／上限', '評定', '推薦（所属）', '備考']];
-  model.fails.slice().sort(function (a, b) {
-    return KG_labelOrder_(a.label, b.label) || (a.no - b.no) || (a.kind < b.kind ? -1 : a.kind > b.kind ? 1 : 0);
-  }).forEach(function (f) {
-    var s = f.student;
-    T.fails.push([f.label, f.no, f.name, f.kind, f.subj, f.abs, f.grade, s ? orgsOf(s) : '', s ? s.status : '']);
+  T.fails = byGrade(['コース', 'クラス', '番号', '氏名', '区分', '科目名', '欠時数／上限', '評定', '推薦（所属）', '備考'], function (g) {
+    return model.fails.filter(function (f) { return KG_gradeOfLabel_(f.label) === g; }).sort(function (a, b) {
+      return KG_labelOrder_(a.label, b.label) || (a.no - b.no) || (a.kind < b.kind ? -1 : a.kind > b.kind ? 1 : 0);
+    }).map(function (f) {
+      var s = f.student;
+      return [KG_course_(KG_clsOfLabel_(f.label)), f.label, f.no, f.name, f.kind, f.subj, f.abs, f.grade,
+        s ? orgsOf(s) : '', s ? s.status : ''];
+    });
   });
 
-  // 評定平均上位（学年別）
-  T.top = {};
-  model.gradeKeys.forEach(function (g) {
-    var l = model.grades[g].filter(function (s) { return s.rank && s.rank <= conf.topN; })
-      .sort(function (a, b) { return a.rank - b.rank || sortSt(a, b); });
-    T.top[g] = [['順位', 'クラス', '番号', '氏名', '評定平均値', '科目数', '不認定', '推薦（所属）']].concat(l.map(function (s) {
-      return [s.rank, s.label, s.no, s.name, s.avg, s.count, s.nFail || '', orgsOf(s)];
-    }));
+  // 評定平均上位（不認定科目のある生徒を除いて順位を付ける）
+  T.top = byGrade(['順位', 'コース', 'クラス', '番号', '氏名', '評定平均値', '科目数', '推薦（所属）'], function (g) {
+    var elig = inGrade(g).filter(function (s) { return s.avg !== null && !s.move && !s.nFail; });
+    elig.forEach(function (s) { s.topRank = elig.filter(function (o) { return o.avg > s.avg; }).length + 1; });
+    return elig.filter(function (s) { return s.topRank <= conf.topN; })
+      .sort(function (a, b) { return a.topRank - b.topRank || sortSt(a, b); })
+      .map(function (s) { return [s.topRank, s.course, s.label, s.no, s.name, s.avg, s.count, orgsOf(s)]; });
   });
 
-  T.perfect = [['学年', 'クラス', '番号', '氏名', '評定平均値', '学年内順位', '推薦（所属）']].concat(
-    all.filter(function (s) { return s.perfect; }).map(function (s) {
-      return [s.grade + '年', s.label, s.no, s.name, avgOf(s), s.rank ? s.rank + '／' + s.rankOf : '', orgsOf(s)];
-    }));
+  T.perfect = byGrade(['コース', 'クラス', '番号', '氏名', '評定平均値', '学年内順位', '推薦（所属）'], function (g) {
+    return inGrade(g).filter(function (s) { return s.perfect; }).map(function (s) {
+      return [s.course, s.label, s.no, s.name, avgOf(s), rankOf(s), orgsOf(s)];
+    });
+  });
 
-  T.poor = [['学年', 'クラス', '番号', '氏名', '出席すべき日数', '欠席', '遅刻', '早退', '該当理由', '評定平均値',
-    '不認定', '推薦（所属）', '備考']].concat(
-    all.filter(function (s) { return s.poor; }).map(function (s) {
-      return [s.grade + '年', s.label, s.no, s.name, s.att['出席すべき日数'], s.absent, s.late, s.early, s.poorWhy,
+  T.poor = byGrade(['コース', 'クラス', '番号', '氏名', '出席すべき日数', '欠席', '遅刻', '早退', '該当理由', '評定平均値',
+    '不認定', '推薦（所属）', '備考'], function (g) {
+    return inGrade(g).filter(function (s) { return s.poor; }).map(function (s) {
+      return [s.course, s.label, s.no, s.name, s.att['出席すべき日数'], s.absent, s.late, s.early, s.poorWhy,
         avgOf(s), s.nFail || '', orgsOf(s), s.status];
-    }));
+    });
+  });
 
   // 推薦生徒の成績確認（個人）
-  T.rec = [['種別', '所属', '学年', 'クラス', '番号', '氏名', '評定平均値', '学年平均との差', '学年内順位', '評定1', '評定2',
-    '履修不認定', '単位不認定', '欠席', '遅刻', '要確認の理由']];
-  model.recs.filter(function (r) { return r.student; }).slice().sort(function (a, b) {
-    return (a.kind === b.kind ? 0 : a.kind === 'クラブ' ? -1 : 1) || (a.org < b.org ? -1 : a.org > b.org ? 1 : 0) ||
-      a.grade - b.grade || ((b.student.avg || 0) - (a.student.avg || 0));
-  }).forEach(function (r) {
-    var s = r.student;
-    T.rec.push([r.kind, r.org, s.grade + '年', s.label, s.no, s.name, avgOf(s),
-      s.avg === null ? '' : s.avg - model.gradeAvg[s.grade], s.rank ? s.rank + '／' + s.rankOf : '',
-      s.n1 || '', s.n2 || '', s.nRishu || '', s.nTani || '', s.absent, s.late, s.recCheck || '']);
+  T.rec = byGrade(['種別', '所属', 'コース', 'クラス', '番号', '氏名', '評定平均値', '学年平均との差', '学年内順位', '評定1', '評定2',
+    '履修不認定', '単位不認定', '欠席', '遅刻', '要確認の理由'], function (g) {
+    return model.recs.filter(function (r) { return r.student && r.student.grade === g; }).slice().sort(function (a, b) {
+      return (a.kind === b.kind ? 0 : a.kind === 'クラブ' ? -1 : 1) || (a.org < b.org ? -1 : a.org > b.org ? 1 : 0) ||
+        ((b.student.avg || 0) - (a.student.avg || 0));
+    }).map(function (r) {
+      var s = r.student;
+      return [r.kind, r.org, s.course, s.label, s.no, s.name, avgOf(s),
+        s.avg === null ? '' : s.avg - model.gradeAvg[s.grade], rankOf(s),
+        s.n1 || '', s.n2 || '', s.nRishu || '', s.nTani || '', s.absent, s.late, s.recCheck || ''];
+    });
   });
 
-  T.org = [['種別', '所属', '学年', '人数', '評定平均値', '最高', '最低', '学年平均との差', '学年平均未満', '要確認', '皆勤', '登校不調']]
-    .concat(model.orgRows.map(function (o) {
-      return [o.kind, o.org, o.grade, o.n, o.avg === null ? '' : o.avg, o.max === null ? '' : o.max,
-        o.min === null ? '' : o.min, o.diff === null ? '' : o.diff, o.below, o.check, o.perfect, o.poor];
-    }));
+  T.org = byGrade(['種別', '所属', '人数', '評定平均値', '最高', '最低', '学年平均との差', '学年平均未満', '要確認', '皆勤', '登校不調'],
+    function (g) {
+      return model.orgRows.filter(function (o) { return o.grade === g; }).map(function (o) {
+        return [o.kind, o.org, o.n, o.avg === null ? '' : o.avg, o.max === null ? '' : o.max,
+          o.min === null ? '' : o.min, o.diff === null ? '' : o.diff, o.below, o.check, o.perfect, o.poor];
+      });
+    });
   T.alias = [['一覧での表記', '集計に使った所属名']].concat(model.aliasRows);
 
-  T.subj = [['学年', '科目', '評定人数', '評定5', '評定4', '評定3', '評定2', '評定1', '評定平均', '5の割合', '1・2の割合', '評定空欄']]
-    .concat(model.subjDist);
+  T.subj = byGrade(['科目', '評定人数', '評定5', '評定4', '評定3', '評定2', '評定1', '評定平均', '5の割合', '1・2の割合', '評定空欄'],
+    function (g) {
+      return model.subjDist.filter(function (r) { return r[0] === g + '年'; }).map(function (r) { return r.slice(1); });
+    });
 
-  var labels = [];
-  all.forEach(function (s) { if (labels.indexOf(s.label) < 0) labels.push(s.label); });
-  T.cls = [['クラス', '在籍（帳票）', '評定平均値', '履修不認定（件）', '単位不認定（件）', '皆勤者', '登校不調者', '推薦生徒', '評定なし・異動']]
-    .concat(labels.map(function (lb) {
-      var l = all.filter(function (s) { return s.label === lb; });
+  T.cls = byGrade(['コース', 'クラス', '在籍（帳票）', '評定平均値', '履修不認定（件）', '単位不認定（件）', '皆勤者', '登校不調者',
+    '推薦生徒', '評定なし・異動'], function (g) {
+    var l = inGrade(g);
+    var labels = [];
+    l.forEach(function (s) { if (labels.indexOf(s.label) < 0) labels.push(s.label); });
+    return labels.map(function (lb) {
+      var c = l.filter(function (s) { return s.label === lb; });
       var f = model.fails.filter(function (x) { return x.label === lb; });
-      return [lb, l.length, KG_mean_(l.filter(function (s) { return s.avg !== null && !s.move; }).map(function (s) { return s.avg; })) || '',
+      var avg = KG_mean_(c.filter(function (s) { return s.avg !== null && !s.move; }).map(function (s) { return s.avg; }));
+      return [c[0].course, lb, c.length, avg === null ? '' : avg,
         f.filter(function (x) { return x.kind === '履修不認定'; }).length, f.filter(function (x) { return x.kind === '単位不認定'; }).length,
-        l.filter(function (s) { return s.perfect; }).length, l.filter(function (s) { return s.poor; }).length,
-        l.filter(function (s) { return s.orgs.length; }).length, l.filter(function (s) { return s.status; }).length];
-    }));
+        c.filter(function (s) { return s.perfect; }).length, c.filter(function (s) { return s.poor; }).length,
+        c.filter(function (s) { return s.orgs.length; }).length, c.filter(function (s) { return s.status; }).length];
+    });
+  });
 
-  T.all = [['学年', 'クラス', '番号', '氏名', '評定平均値', '評定合計', '科目数', '学年内順位', '評定1', '評定2', '履修不認定', '単位不認定',
-    '授業日数', '出席すべき日数', '欠席', '遅刻', '早退', '皆勤', '登校不調', '推薦（所属）', '状態']].concat(all.map(function (s) {
-    return [s.grade + '年', s.label, s.no, s.name, avgOf(s), s.sum, s.count, s.rank ? s.rank + '／' + s.rankOf : '',
-      s.n1, s.n2, s.nRishu, s.nTani, s.att['授業日数'], s.att['出席すべき日数'], s.absent, s.late, s.early,
-      s.perfect ? '○' : '', s.poor ? '○' : '', orgsOf(s), s.status];
-  }));
+  T.all = byGrade(['コース', 'クラス', '番号', '氏名', '評定平均値', '評定合計', '科目数', '学年内順位', '評定1', '評定2', '履修不認定',
+    '単位不認定', '授業日数', '出席すべき日数', '欠席', '遅刻', '早退', '皆勤', '登校不調', '推薦（所属）', '状態'], function (g) {
+    return inGrade(g).map(function (s) {
+      return [s.course, s.label, s.no, s.name, avgOf(s), s.sum, s.count, rankOf(s),
+        s.n1, s.n2, s.nRishu, s.nTani, s.att['授業日数'], s.att['出席すべき日数'], s.absent, s.late, s.early,
+        s.perfect ? '○' : '', s.poor ? '○' : '', orgsOf(s), s.status];
+    });
+  });
   return T;
 }
+
+function KG_gradeOfLabel_(label) { var m = String(label).match(/^(\d+)年/); return m ? Number(m[1]) : null; }
+
+function KG_clsOfLabel_(label) { var m = String(label).match(/^\d+年(.+)組$/); return m ? m[1] : ''; }
 
 function KG_clsOrder_(a, b) {
   var na = /^\d+$/.test(a), nb = /^\d+$/.test(b);
   if (na && nb) return Number(a) - Number(b);
-  if (na !== nb) return na ? -1 : 1;
+  var ca = KG_courseOrder_(KG_course_(a)), cb = KG_courseOrder_(KG_course_(b));
+  if (ca !== cb) return ca - cb;
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
 function KG_labelOrder_(a, b) {
-  var ma = a.match(/^(\d+)年(.+)組$/) || [0, 0, a], mb = b.match(/^(\d+)年(.+)組$/) || [0, 0, b];
-  return (Number(ma[1]) - Number(mb[1])) || KG_clsOrder_(ma[2], mb[2]);
+  return ((KG_gradeOfLabel_(a) || 0) - (KG_gradeOfLabel_(b) || 0)) || KG_clsOrder_(KG_clsOfLabel_(a), KG_clsOfLabel_(b));
 }
 
 // ---------------------------------------------------------------- 出力（Apps Script）
@@ -643,44 +713,71 @@ function KG_labelOrder_(a, b) {
 function KG_writeWorkbook_(model, conf, warnings) {
   var T = KG_tables_(model);
   var meta = model.meta;
-  var stamp = Utilities.formatDate(meta.created, Session.getScriptTimeZone(), 'yyyyMMdd-HHmm');
-  var book = SpreadsheetApp.create(meta.year + '年度_' + meta.term + '_単位認定会議資料_' + stamp);
+  var tz = Session.getScriptTimeZone();
+  var book = SpreadsheetApp.create(meta.year + '年度_' + meta.term + '_単位認定会議資料_' +
+    Utilities.formatDate(meta.created, tz, 'yyyyMMdd-HHmm'));
   if (conf.resultFolderId) DriveApp.getFileById(book.getId()).moveTo(DriveApp.getFolderById(conf.resultFolderId));
   var first = book.getSheets()[0];
 
-  var sheet = function (name) { return book.insertSheet(name); };
   var put = function (sh, row, table, fmt) {
-    if (table.length < 1) return row;
-    sh.getRange(row, 1, table.length, table[0].length).setValues(table);
-    sh.getRange(row, 1, 1, table[0].length).setFontWeight('bold').setBackground('#d9e1f2').setWrap(true)
+    var w = table[0].length;
+    sh.getRange(row, 1, table.length, w).setValues(table);
+    sh.getRange(row, 1, 1, w).setFontWeight('bold').setBackground('#d9e1f2').setWrap(true)
       .setHorizontalAlignment('center').setVerticalAlignment('middle');
+    sh.getRange(row, 1, table.length, w).setBorder(true, true, true, true, true, true, '#999999', SpreadsheetApp.BorderStyle.SOLID);
     if (table.length > 1) {
-      sh.getRange(row, 1, table.length, table[0].length).setBorder(true, true, true, true, true, true, '#999999', SpreadsheetApp.BorderStyle.SOLID);
       Object.keys(fmt || {}).forEach(function (c) {
         sh.getRange(row + 1, Number(c), table.length - 1, 1).setNumberFormat(fmt[c]);
       });
     }
     return row + table.length;
   };
+  /** 学年ごとに「■ ○年」の見出しと表を縦に並べる。該当なしの学年も見出しは出す。 */
+  var putByGrade = function (sh, row, tables, fmt, after) {
+    model.gradeKeys.forEach(function (g) {
+      var t = tables[g];
+      sh.getRange(row, 1).setValue('■ ' + g + '年（' + (t.length - 1) + '件）').setFontWeight('bold').setFontSize(12);
+      if (t.length === 1) {
+        put(sh, row + 1, t);
+        sh.getRange(row + 2, 1).setValue('該当なし');
+        row += 4;
+        return;
+      }
+      var end = put(sh, row + 1, t, fmt);
+      if (after) after(sh, row + 2, t);
+      row = end + 2;
+    });
+    return row;
+  };
   var title = function (sh, text, note) {
     sh.getRange(1, 1).setValue(text).setFontSize(14).setFontWeight('bold');
     if (note) sh.getRange(2, 1).setValue(note).setFontColor('#595959').setFontSize(9);
   };
-  var finish = function (sh, headerRow) {
-    sh.setFrozenRows(headerRow);
+  var finish = function (sh, width1) {
     sh.autoResizeColumns(1, sh.getLastColumn());
-    sh.setColumnWidth(1, 100);   // A1 の見出し文字で A 列が広がりすぎないように
+    sh.setColumnWidth(1, width1 || 100);   // A1 の見出し文字で A 列が広がりすぎないように
+  };
+  var sheet = function (name, heading, note, tables, fmt, after) {
+    var sh = book.insertSheet(name);
+    title(sh, heading, note);
+    var r = putByGrade(sh, 4, tables, fmt, after);
+    finish(sh);
+    return { sh: sh, row: r };
   };
 
   // 概要
   var s0 = first.setName('概要');
   title(s0, '単位認定会議資料（' + meta.year + '年度 ' + meta.term + '）',
-    '作成: ' + Utilities.formatDate(meta.created, Session.getScriptTimeZone(), 'yyyy/MM/dd HH:mm') + '　取扱注意（個人情報）');
-  var r = put(s0, 4, T.summary, { 4: '0.00', 10: '0.00' });
+    '作成: ' + Utilities.formatDate(meta.created, tz, 'yyyy/MM/dd HH:mm') + '　取扱注意（個人情報）');
+  s0.getRange(3, 1).setValue('学年・コース別 集計').setFontWeight('bold').setFontSize(12);
+  var r = put(s0, 4, T.summary, { 5: '0.00', 6: '+0.00;-0.00;0.00', 13: '0.00' });
+  T.summaryTotals.forEach(function (i) { s0.getRange(4 + i, 1, 1, T.summary[0].length).setFontWeight('bold').setBackground('#f2f2f2'); });
   var notes = [
     ['判定基準'],
+    ['・コース: 自己創造／ウォラーレ＝1～5組、GC／CBE＝GC1組・CBE1組、SS＝SS1組、FA＝FA1組・FA2組、看護科＝N1組'],
     ['・履修不認定・単位不認定: 成績確認システムの判定（欠時数が授業時数の1/3以上＝履修不認定）。元: ' + (meta.resultName || '（なし）')],
     ['・評定平均値: 評定のついた科目の単純平均。評定のない生徒・異動者は順位と平均から除く'],
+    ['・評定平均上位: 不認定科目（履修・単位）のある生徒を除いて順位を付ける'],
     ['・皆勤: 欠席・遅刻・早退がすべて0　／　登校不調: 欠席' + conf.absentLimit + '日以上 または 遅刻' + conf.lateLimit + '回以上'],
     ['・推薦生徒の要確認: 評定平均値' + conf.recMinAvg.toFixed(1) + '未満、評定1、不認定、登校不調のいずれか（基準は設定シートで変更可）'],
     ['・クラス評定一覧: ' + meta.files.length + 'ファイル']
@@ -693,60 +790,34 @@ function KG_writeWorkbook_(model, conf, warnings) {
     s0.getRange(r + 1, 1).setValue('注意（' + warnings.length + '件）').setFontWeight('bold').setFontColor('#c00000');
     s0.getRange(r + 2, 1, warnings.length, 1).setValues(warnings.map(function (w) { return [w]; }));
   }
-  finish(s0, 4);
-  s0.setColumnWidth(1, 90);
+  s0.setFrozenRows(4);
+  finish(s0, 60);
 
-  var sh = sheet('不認定一覧');
-  title(sh, '履修不認定・単位不認定一覧', '成績確認システムの最新の結果から。クラス・番号順');
-  put(sh, 3, T.fails); finish(sh, 3);
-
-  sh = sheet('評定平均上位');
-  title(sh, '評定平均値 上位' + conf.topN + '名（学年別）', '評定のない生徒・異動者を除く。同順位は全員掲載');
-  r = 3;
-  model.gradeKeys.forEach(function (g) {
-    sh.getRange(r, 1).setValue(g + '年').setFontWeight('bold').setFontSize(12);
-    r = put(sh, r + 1, T.top[g], { 5: '0.00' }) + 1;
-  });
-  sh.autoResizeColumns(1, 8);
-  sh.setColumnWidth(1, 60);
-
-  sh = sheet('皆勤者一覧');
-  title(sh, '皆勤者一覧（評定平均値付き）', '欠席・遅刻・早退がすべて0。' + (T.perfect.length - 1) + '名');
-  put(sh, 3, T.perfect, { 5: '0.00' }); finish(sh, 3);
-
-  sh = sheet('登校不調者一覧');
-  title(sh, '登校不調者一覧', '欠席' + conf.absentLimit + '日以上 または 遅刻' + conf.lateLimit + '回以上。' + (T.poor.length - 1) + '名');
-  put(sh, 3, T.poor, { 10: '0.00' }); finish(sh, 3);
-
-  sh = sheet('推薦生徒 成績確認');
-  title(sh, '推薦生徒の成績確認（個人）', '所属ごと・評定平均値の高い順。「要確認の理由」が空欄なら基準を満たしている');
-  put(sh, 3, T.rec, { 7: '0.00', 8: '+0.00;-0.00;0.00' }); finish(sh, 3);
-  if (T.rec.length > 1) {
-    var rule = SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=$P4<>""').setBackground('#fce4e4')
-      .setRanges([sh.getRange(4, 1, T.rec.length - 1, T.rec[0].length)]).build();
-    sh.setConditionalFormatRules([rule]);
-  }
-
-  sh = sheet('所属別 評定平均');
-  title(sh, '所属別（クラブ・コース）評定平均値', '推薦生徒一覧の所属で集計。学年平均との差は、各生徒の（評定平均値－その学年の平均）の平均');
-  r = put(sh, 3, T.org, { 5: '0.00', 6: '0.00', 7: '0.00', 8: '+0.00;-0.00;0.00' });
+  sheet('不認定一覧', '履修不認定・単位不認定一覧（学年別）', '成績確認システムの最新の結果から。クラス・番号順', T.fails);
+  sheet('評定平均上位', '評定平均値 上位' + conf.topN + '名（学年別）',
+    '不認定科目のある生徒・評定のない生徒・異動者を除く。同順位は全員掲載', T.top, { 6: '0.00' });
+  sheet('皆勤者一覧', '皆勤者一覧（学年別・評定平均値付き）', '欠席・遅刻・早退がすべて0', T.perfect, { 5: '0.00' });
+  sheet('登校不調者一覧', '登校不調者一覧（学年別）',
+    '欠席' + conf.absentLimit + '日以上 または 遅刻' + conf.lateLimit + '回以上', T.poor, { 10: '0.00' });
+  sheet('推薦生徒 成績確認', '推薦生徒の成績確認（学年別）',
+    '所属ごと・評定平均値の高い順。「要確認の理由」がある行は色付き', T.rec, { 7: '0.00', 8: '+0.00;-0.00;0.00' },
+    function (sh, row, t) {
+      var bg = t.slice(1).map(function (x) {
+        var c = x[x.length - 1] ? '#fce4e4' : null;
+        return x.map(function () { return c; });
+      });
+      sh.getRange(row, 1, bg.length, t[0].length).setBackgrounds(bg);
+    });
+  var so = sheet('所属別 評定平均', '所属別（クラブ・コース区分）評定平均値（学年別）',
+    '推薦生徒一覧の所属で集計。学年平均との差は、各生徒の（評定平均値－その学年の平均）の平均', T.org,
+    { 4: '0.00', 5: '0.00', 6: '0.00', 7: '+0.00;-0.00;0.00' });
   if (T.alias.length > 1) {
-    sh.getRange(r + 1, 1).setValue('所属名の統一（◎の有無・表記ゆれ）').setFontWeight('bold');
-    put(sh, r + 2, T.alias);
+    so.sh.getRange(so.row, 1).setValue('所属名の統一（◎の有無・表記ゆれ）').setFontWeight('bold');
+    put(so.sh, so.row + 1, T.alias);
   }
-  finish(sh, 3);
-
-  sh = sheet('科目別評定分布');
-  title(sh, '科目別 評定分布（学年別）', '評定を付けない科目は除く');
-  put(sh, 3, T.subj, { 9: '0.00', 10: '0%', 11: '0%' }); finish(sh, 3);
-
-  sh = sheet('クラス別比較');
-  title(sh, 'クラス別比較');
-  put(sh, 3, T.cls, { 3: '0.00' }); finish(sh, 3);
-
-  sh = sheet('生徒一覧');
-  title(sh, '生徒一覧（基礎データ）');
-  put(sh, 3, T.all, { 5: '0.00' }); finish(sh, 3);
+  sheet('科目別評定分布', '科目別 評定分布（学年別）', '評定を付けない科目は除く', T.subj, { 8: '0.00', 9: '0%', 10: '0%' });
+  sheet('クラス別比較', 'クラス別比較（学年別）', '', T.cls, { 4: '0.00' });
+  sheet('生徒一覧', '生徒一覧（学年別・基礎データ）', '', T.all, { 5: '0.00' });
 
   book.setActiveSheet(s0);
   return book;
@@ -755,5 +826,5 @@ function KG_writeWorkbook_(model, conf, warnings) {
 // Node でのテスト用（Apps Script では module が無いので何もしない）
 if (typeof module !== 'undefined') {
   module.exports = { KG_xlsxToRows_: KG_xlsxToRows_, KG_parseClassRows_: KG_parseClassRows_, KG_readRecommend_: KG_readRecommend_,
-    KG_buildModel_: KG_buildModel_, KG_tables_: KG_tables_ };
+    KG_buildModel_: KG_buildModel_, KG_tables_: KG_tables_, KG_course_: KG_course_ };
 }
