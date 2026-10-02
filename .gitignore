@@ -4,3 +4,6 @@ output/
 *.xlsx
 ~$*
 __pycache__/
+
+# Node.js 依存パッケージ（npm install で復元）
+node_modules/

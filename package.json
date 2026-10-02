@@ -1,0 +1,9 @@
+{
+  "name": "claude-workspace",
+  "private": true,
+  "description": "Claude Code スキル用の Node.js 依存パッケージ",
+  "type": "module",
+  "dependencies": {
+    "sharp": "^0.35.5"
+  }
+}
