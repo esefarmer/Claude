@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>セルクエスト 細胞の構造</title>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#f3f6fb; --panel:#ffffff; --ink:#1f2937; --sub:#5b6676; --line:#dde3ec;
+  --accent:#2563eb; --accent-soft:#e8efff; --ok:#15803d; --ok-soft:#e5f6ea;
+  --ng:#c62828; --ng-soft:#fdecec; --warn:#b45309;
+  --cyto:#fff6ea; --cyto2:#f5fbe8;
+  --radius:14px;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"Noto Sans JP","Hiragino Sans","Hiragino Kaku Gothic ProN","Meiryo",sans-serif;line-height:1.6;font-size:16px}
+button{font:inherit}
+[hidden]{display:none !important}
+
+/* ヘッダー */
+.topbar{position:sticky;top:0;z-index:20;background:#1e3a8a;color:#fff;display:flex;align-items:center;gap:12px;padding:8px 16px}
+.topbar .logo{font-weight:800;letter-spacing:.04em;white-space:nowrap}
+.topbar .logo small{font-weight:500;opacity:.8;margin-left:6px}
+.topbar .who{margin-left:auto;font-size:14px;opacity:.95;text-align:right;min-width:0;overflow-wrap:anywhere}
+.topbar .home{background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:8px;padding:4px 10px;cursor:pointer}
+.topbar .home:hover{background:rgba(255,255,255,.28)}
+
+.screen{max-width:1120px;margin:0 auto;padding:16px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+h1,h2,h3{line-height:1.35;margin:0 0 8px}
+h1{font-size:28px}
+h2{font-size:22px}
+h3{font-size:18px}
+.sub{color:var(--sub)}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--accent);color:#fff;min-height:44px}
+.btn:hover{filter:brightness(1.08)}
+.btn:focus-visible,.choice:focus-visible,.sortcard:focus-visible,.bin:focus-visible{outline:3px solid #f59e0b;outline-offset:2px}
+.btn.ghost{background:#fff;color:var(--accent);border:2px solid var(--accent)}
+.btn.gray{background:#e5e7eb;color:var(--ink)}
+.btn:disabled{opacity:.5;cursor:default}
+
+/* スタート画面 */
+.hero{display:grid;grid-template-columns:1.1fr 1fr;gap:20px;align-items:start}
+.hero .art{background:linear-gradient(135deg,#dbeafe,#ede9fe);border-radius:var(--radius);padding:12px;display:flex;align-items:center;justify-content:center}
+.form label{display:block;font-weight:700;margin:10px 0 4px}
+.form input{width:100%;font:inherit;padding:8px 12px;border:2px solid var(--line);border-radius:10px}
+.form input:focus{border-color:var(--accent);outline:none}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.modes label{margin:0;font-weight:500;border:2px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer;display:block}
+.modes input{width:auto;margin-right:6px}
+.modes label:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.err{color:var(--ng);font-weight:700;min-height:1.6em;margin-top:6px}
+
+/* メニュー */
+.menu{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:12px}
+.gcard{background:#fff;border:2px solid var(--line);border-radius:var(--radius);padding:16px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:6px;transition:transform .12s,border-color .12s}
+.gcard:hover{transform:translateY(-2px);border-color:var(--accent)}
+.gcard .ic{font-size:34px;line-height:1}
+.gcard .t{font-size:19px;font-weight:800}
+.gcard .d{color:var(--sub);font-size:14px}
+.gcard .best{margin-top:auto;font-size:13px;color:var(--accent);font-weight:700}
+.status{font-size:13px;color:var(--sub);margin-top:14px}
+
+/* 細胞図 */
+.dg-wrap{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:14px;align-items:start}
+.svgbox{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:6px}
+.svgbox svg{width:100%;height:auto;display:block;user-select:none;touch-action:manipulation}
+.prompt{font-size:20px;font-weight:800;padding:10px 14px;border-radius:12px;background:var(--accent-soft);margin-bottom:10px}
+.prompt .target{color:#1d4ed8;font-size:24px}
+.gstat{display:flex;gap:14px;flex-wrap:wrap;font-weight:700;margin-bottom:10px}
+.gstat span{background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px 12px}
+.part{cursor:pointer}
+.part:hover{filter:drop-shadow(0 0 3px rgba(37,99,235,.95))}
+.part[data-part="cytosol"]:hover{filter:none}
+.part.hl-ok{filter:drop-shadow(0 0 5px #16a34a) drop-shadow(0 0 3px #16a34a);animation:pulse .9s ease-in-out infinite}
+.part.hl-ng{filter:drop-shadow(0 0 5px #dc2626) drop-shadow(0 0 2px #dc2626)}
+.part.hl-sel{filter:drop-shadow(0 0 5px #2563eb) drop-shadow(0 0 3px #2563eb);animation:pulse .9s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.55}}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.tab{border:2px solid var(--line);background:#fff;border-radius:999px;padding:6px 14px;cursor:pointer;font-weight:700}
+.tab.on{border-color:var(--accent);background:var(--accent-soft);color:#1d4ed8}
+.legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.legend button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:4px 10px;cursor:pointer;font-size:14px}
+.legend button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* フィードバック */
+.fb{border-radius:12px;padding:12px 14px;margin-top:10px;border:2px solid transparent}
+.fb.ok{background:var(--ok-soft);border-color:#86efac}
+.fb.ng{background:var(--ng-soft);border-color:#fca5a5}
+.fb.info{background:#f8fafc;border-color:var(--line)}
+.fb .head{font-weight:800;font-size:18px}
+.fb.ok .head{color:var(--ok)}
+.fb.ng .head{color:var(--ng)}
+.fb .exp{margin-top:4px}
+.fb .actions{margin-top:10px}
+
+/* タイムアタック */
+.timer{height:14px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin:6px 0 12px}
+.timer i{display:block;height:100%;background:linear-gradient(90deg,#22c55e,#eab308);width:100%;transition:width .1s linear}
+.timer.low i{background:#ef4444}
+.qtext{font-size:21px;font-weight:700;margin:6px 0 14px}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.choice{display:flex;gap:10px;align-items:flex-start;text-align:left;border:2px solid var(--line);background:#fff;border-radius:12px;padding:12px 14px;cursor:pointer;font-size:17px;min-height:60px}
+.choice:hover:not(:disabled){border-color:var(--accent);background:var(--accent-soft)}
+.choice .no{flex:none;width:28px;height:28px;border-radius:50%;background:#e0e7ff;color:#1d4ed8;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:15px}
+.choice.correct{border-color:#16a34a;background:var(--ok-soft)}
+.choice.wrong{border-color:#dc2626;background:var(--ng-soft)}
+.choice:disabled{cursor:default}
+.combo{color:#c2410c}
+.pop{animation:pop .35s ease}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}
+
+/* 分類 */
+.pool{display:flex;flex-wrap:wrap;gap:8px;min-height:60px;padding:10px;border:2px dashed var(--line);border-radius:12px;background:#fff}
+.sortcard{touch-action:none;user-select:none;border:2px solid #cbd5e1;background:#fff;border-radius:10px;padding:8px 12px;cursor:grab;font-size:15px;font-weight:600;box-shadow:0 1px 0 rgba(0,0,0,.06);max-width:100%}
+.sortcard.sel{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 3px rgba(37,99,235,.25)}
+.sortcard.dragging{cursor:grabbing;position:relative;z-index:50;box-shadow:0 8px 20px rgba(0,0,0,.2);pointer-events:none}
+.sortcard.placed{cursor:default;border-color:#86efac;background:var(--ok-soft);font-size:13px;padding:4px 8px}
+.sortcard.missed{border-color:#fdba74;background:#fff7ed}
+.shake{animation:shake .4s}
+@keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.bins{display:grid;gap:10px;margin-top:12px}
+.bin{border:2px solid var(--line);border-radius:12px;background:#fff;min-height:150px;padding:8px;cursor:pointer;display:flex;flex-direction:column;gap:6px}
+.bin .bh{font-weight:800;border-radius:8px;padding:6px 8px;color:#fff;text-align:center;font-size:15px}
+.bin .bl{display:flex;flex-wrap:wrap;gap:4px}
+.bin.over{outline:3px solid var(--accent);background:var(--accent-soft)}
+
+/* ミッション */
+.map{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.map .st{display:flex;align-items:center;gap:4px;font-size:13px;padding:4px 10px;border-radius:999px;background:#e5e7eb;color:#6b7280}
+.map .st.done{background:#dcfce7;color:#166534}
+.map .st.now{background:#1e3a8a;color:#fff;font-weight:700}
+.scene{display:grid;grid-template-columns:110px 1fr;gap:14px;align-items:center;background:linear-gradient(135deg,#0f172a,#1e3a8a);color:#f8fafc;border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.scene .big{font-size:64px;text-align:center;line-height:1}
+.scene .place{font-size:13px;letter-spacing:.1em;color:#93c5fd;font-weight:700}
+.scene h3{color:#fff;font-size:21px}
+.energy{font-size:20px;letter-spacing:2px}
+
+/* 結果 */
+.score-big{font-size:48px;font-weight:900;color:#1d4ed8;line-height:1.1}
+.kpis{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 14px;min-width:120px}
+.kpi b{display:block;font-size:22px}
+.kpi span{font-size:13px;color:var(--sub)}
+.review{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.review .it{border:1px solid var(--line);border-left:6px solid var(--ng);border-radius:10px;padding:10px 12px;background:#fff}
+.review .it .q{font-weight:700}
+.review .it .a{font-size:14px;margin-top:4px}
+.review .it .a .yr{color:var(--ng)}
+.review .it .a .cr{color:var(--ok);font-weight:700}
+.review .it .e{font-size:14px;color:var(--sub);margin-top:4px}
+.send{font-size:14px;margin-top:8px;padding:6px 10px;border-radius:8px;background:#f1f5f9;display:inline-block}
+.send.ok{background:var(--ok-soft);color:var(--ok)}
+.send.ng{background:#fff7ed;color:var(--warn)}
+
+@media (max-width:860px){
+  .hero,.dg-wrap{grid-template-columns:1fr}
+  .choices{grid-template-columns:1fr}
+  .scene{grid-template-columns:1fr}
+  .scene .big{font-size:48px}
+  .modes{grid-template-columns:1fr}
+  .bins{grid-template-columns:1fr 1fr !important}
+  .topbar{flex-wrap:wrap}
+  .topbar .logo small{display:none}
+  .topbar .who{font-size:12px}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="logo">🔬 セルクエスト<small>細胞の構造・細胞骨格・細胞接着</small></div>
+  <div class="who" id="who"></div>
+  <button class="home" id="btn-home" hidden>メニュー</button>
+</header>
+
+<!-- スタート -->
+<section class="screen" id="scr-start">
+  <div class="hero">
+    <div class="panel form">
+      <h1>セルクエスト</h1>
+      <p class="sub">高校「生物」細胞の構造を、4つのゲームで攻略しよう。</p>
+      <label for="in-course">講座・クラス</label>
+      <input id="in-course" autocomplete="off" placeholder="例：生物A講座 ／ 2年3組">
+      <label for="in-num">番号</label>
+      <input id="in-num" inputmode="numeric" autocomplete="off" placeholder="例：12">
+      <label for="in-name">氏名</label>
+      <input id="in-name" autocomplete="off" placeholder="例：京都 花子">
+      <label>モード</label>
+      <div class="modes">
+        <label><input type="radio" name="mode" value="class" checked><b>授業モード</b><br><span class="sub">各ゲーム3〜5分。出題数をしぼります。</span></label>
+        <label><input type="radio" name="mode" value="self"><b>自習モード</b><br><span class="sub">全問・長めの制限時間でじっくり。</span></label>
+      </div>
+      <div class="err" id="start-err"></div>
+      <button class="btn" id="btn-start">はじめる ▶</button>
+    </div>
+    <div class="art" aria-hidden="true" id="hero-art"></div>
+  </div>
+</section>
+
+<!-- メニュー -->
+<section class="screen" id="scr-menu" hidden>
+  <h2>ゲームをえらぼう</h2>
+  <p class="sub" id="menu-mode"></p>
+  <div class="menu">
+    <button class="gcard" data-go="diagram"><span class="ic">🎯</span><span class="t">細胞図クリック</span><span class="d">指定された構造を細胞の模式図からさがしてクリック。動物細胞・植物細胞・上皮細胞の3種類。</span><span class="best" data-best="diagram"></span></button>
+    <button class="gcard" data-go="quiz"><span class="ic">⏱️</span><span class="t">タイムアタック4択</span><span class="d">制限時間内に何問正解できる？連続正解でコンボボーナス。まちがえると3秒減ります。</span><span class="best" data-best="quiz"></span></button>
+    <button class="gcard" data-go="sort"><span class="ic">🧩</span><span class="t">分類チャレンジ</span><span class="d">カードをドラッグして正しい箱へ。細胞骨格・細胞接着・モータータンパク質を仕分けよう。</span><span class="best" data-best="sort"></span></button>
+    <button class="gcard" data-go="mission"><span class="ic">🚀</span><span class="t">ミクロ探検隊</span><span class="d">探査艇ミクロ号で小腸の上皮細胞へ潜入！謎を解きながら細胞の中を進み、基底膜から帰還せよ。</span><span class="best" data-best="mission"></span></button>
+    <button class="gcard" data-go="zukan"><span class="ic">📖</span><span class="t">細胞図鑑（観察モード）</span><span class="d">得点なし。図の各部分をクリックして名前と働きを確認できます。予習・復習に。</span></button>
+  </div>
+  <div class="status" id="menu-status"></div>
+  <p style="margin-top:14px"><button class="btn gray" id="btn-change">名前・モードを変更</button></p>
+</section>
+
+<!-- 細胞図クリック -->
+<section class="screen" id="scr-diagram" hidden>
+  <div class="gstat"><span id="dg-prog"></span><span id="dg-score"></span><span id="dg-which"></span></div>
+  <div class="dg-wrap">
+    <div>
+      <div class="prompt" id="dg-prompt"></div>
+      <div class="svgbox" id="dg-svg"></div>
+    </div>
+    <div>
+      <div class="fb info" id="dg-fb"><div class="head">図の中をクリックしよう</div><div class="exp">すばやく正解すると、スピードボーナスがつきます（5秒以内 +5点、10秒以内 +2点）。</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 図鑑 -->
+<section class="screen" id="scr-zukan" hidden>
+  <h2>📖 細胞図鑑（観察モード）</h2>
+  <div class="tabs" id="zk-tabs"></div>
+  <div class="dg-wrap">
+    <div class="svgbox" id="zk-svg"></div>
+    <div>
+      <div class="fb info" id="zk-fb"><div class="head">図の部分をクリック</div><div class="exp">下の名前ボタンを押すと、図の中の位置が光ります。</div></div>
+      <div class="legend" id="zk-legend"></div>
+    </div>
+  </div>
+</section>
+
+<!-- タイムアタック -->
+<section class="screen" id="scr-quiz" hidden>
+  <div class="gstat"><span id="qz-time"></span><span id="qz-score"></span><span id="qz-combo" class="combo"></span><span id="qz-count"></span></div>
+  <div class="timer" id="qz-timer"><i></i></div>
+  <div class="panel">
+    <div class="qtext" id="qz-q"></div>
+    <div class="choices" id="qz-choices"></div>
+    <div id="qz-fb"></div>
+  </div>
+  <p class="sub" style="font-size:13px;margin-top:8px">キーボード：1〜4で解答、Enterで次へ。解説を読んでいる間はタイマーが止まります。</p>
+</section>
+
+<!-- 分類 -->
+<section class="screen" id="scr-sort" hidden>
+  <div class="gstat"><span id="st-round"></span><span id="st-score"></span><span id="st-left"></span></div>
+  <h2 id="st-title"></h2>
+  <p class="sub" style="margin:0 0 8px">カードを正しい箱へドラッグ。カードをクリックしてから箱をクリックしてもOK。</p>
+  <div class="pool" id="st-pool"></div>
+  <div class="bins" id="st-bins"></div>
+  <div id="st-fb"></div>
+</section>
+
+<!-- ミッション -->
+<section class="screen" id="scr-mission" hidden>
+  <div class="row" style="justify-content:space-between;margin-bottom:8px">
+    <div class="energy" id="ms-energy"></div>
+    <div class="gstat" style="margin:0"><span id="ms-score"></span></div>
+  </div>
+  <div class="map" id="ms-map"></div>
+  <div class="scene">
+    <div class="big" id="ms-icon"></div>
+    <div><div class="place" id="ms-place"></div><h3 id="ms-title"></h3><div id="ms-text"></div></div>
+  </div>
+  <div class="panel">
+    <div class="qtext" id="ms-q"></div>
+    <div class="choices" id="ms-choices"></div>
+    <div id="ms-fb"></div>
+  </div>
+</section>
+
+<!-- 結果 -->
+<section class="screen" id="scr-result" hidden>
+  <div class="panel">
+    <p class="sub" id="rs-game" style="margin:0"></p>
+    <div id="rs-msg" style="font-weight:800;font-size:20px"></div>
+    <div class="score-big" id="rs-score"></div>
+    <div class="kpis" id="rs-kpis"></div>
+    <div class="send" id="rs-send"></div>
+    <div class="row" style="margin-top:14px">
+      <button class="btn" id="rs-retry">もう一度</button>
+      <button class="btn ghost" id="rs-menu">メニューへ</button>
+    </div>
+  </div>
+  <div class="panel" style="margin-top:14px" id="rs-review-wrap">
+    <h3>ふり返り：まちがえた問題</h3>
+    <div class="review" id="rs-review"></div>
+  </div>
+</section>
+
+<script>
+/* =========================================================
+   設定
+   GAS_URL … HTMLファイルを配布して記録も取るとき、GASウェブアプリのURL（…/exec）を入れる。
+             URLの末尾に ?api=… を付けても指定できる。
+   GAS（HtmlService）から配信するときは空欄のままでよい（自動で google.script.run を使う）。
+   ========================================================= */
+const CONFIG = {
+  GAS_URL: ''
+};
+
+/* ---------- 共通 ---------- */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+const store = {
+  get(k,d){ try{ const v=localStorage.getItem('cq_'+k); return v===null?d:JSON.parse(v); }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem('cq_'+k, JSON.stringify(v)); }catch(e){} }
+};
+const state = { player:null, mode:'class', screen:'scr-start', retry:null };
+const isClass = () => state.mode === 'class';
+
+function show(id){
+  $$('.screen').forEach(s => s.hidden = (s.id !== id));
+  state.screen = id;
+  $('#btn-home').hidden = (id === 'scr-start' || id === 'scr-menu');
+  window.scrollTo(0,0);
+}
+function renderWho(){
+  const p = state.player;
+  $('#who').textContent = p ? `${p.course}　${p.num}番　${p.name}　［${isClass()?'授業':'自習'}モード］` : '';
+}
+
+/* =========================================================
+   細胞の各部分（図とクリック当て・図鑑で共通）
+   ========================================================= */
+const PARTS = {
+  membrane:{name:'細胞膜', desc:'リン脂質の二重層に膜タンパク質がモザイク状に分布した膜。物質の出入りを調節する（選択的透過性）。'},
+  cytosol:{name:'細胞質基質（サイトゾル）', desc:'細胞小器官のすき間を満たす液状の部分。解糖系など多くの化学反応の場となる。'},
+  nucleus:{name:'核', desc:'核膜（二重膜）に包まれ、DNAを含む染色体をもつ。遺伝情報を保持し、転写が行われる。'},
+  nucleolus:{name:'核小体', desc:'核の中に1〜数個ある。rRNAの合成とリボソームの組み立てが行われる。'},
+  pore:{name:'核膜孔', desc:'核膜にあいた孔。核でつくられたmRNAや、核内で働くタンパク質などが出入りする。'},
+  mito:{name:'ミトコンドリア', desc:'外膜と内膜の二重膜からなり、内膜はひだ状（クリステ）。呼吸によってATPを合成する。独自のDNAをもつ。'},
+  rer:{name:'粗面小胞体', desc:'表面にリボソームが付着した小胞体。分泌タンパク質や膜タンパク質を合成し、ゴルジ体へ送る。'},
+  ser:{name:'滑面小胞体', desc:'リボソームが付着していない小胞体。脂質の合成や、筋細胞でのCa²⁺の貯蔵などを行う。'},
+  golgi:{name:'ゴルジ体', desc:'扁平な袋が重なった構造。小胞体から届いたタンパク質に糖を付加するなど修飾・選別し、小胞にして送り出す。'},
+  lyso:{name:'リソソーム', desc:'加水分解酵素を含む小胞。取り込んだ物質や不要になった細胞小器官を分解する（オートファジーにも関わる）。'},
+  centro:{name:'中心体', desc:'2個の中心小体からなる。微小管が伸びる起点となり、細胞分裂のときには紡錘体の形成に関わる。'},
+  ribo:{name:'リボソーム', desc:'rRNAとタンパク質からなる粒子で、膜に包まれていない。mRNAの情報をもとにタンパク質を合成（翻訳）する。'},
+  actin:{name:'アクチンフィラメント', desc:'アクチンが重合した直径約7nmの繊維。細胞膜の直下に多く、ミオシンとともに筋収縮・アメーバ運動・細胞質分裂などに働く。'},
+  mt:{name:'微小管', desc:'チューブリンが重合した直径約25nmの中空の管。中心体から伸び、小胞輸送のレールや紡錘体、繊毛・鞭毛をつくる。'},
+  if:{name:'中間径フィラメント', desc:'直径約10nmの繊維。ケラチンなど種類が多く、引っ張る力に強いため、細胞や核の形を保つ。'},
+  wall:{name:'細胞壁', desc:'セルロースを主成分とする丈夫な構造。細胞の形を保ち、吸水による破裂を防ぐ。物質をよく通す（全透性）。'},
+  vacuole:{name:'液胞', desc:'液胞膜に包まれ、細胞液を含む。成長した植物細胞で大きく発達し、アントシアンなどの色素や不要物をためる。'},
+  chloro:{name:'葉緑体', desc:'二重膜に包まれ、内部にチラコイド（重なった部分がグラナ）をもつ。光合成を行う。独自のDNAをもつ。'},
+  microvilli:{name:'微絨毛', desc:'小腸の上皮細胞の表面にある細かい突起。内部をアクチンフィラメントの束が支え、表面積を広げて吸収の効率を高める。'},
+  tight:{name:'密着結合', desc:'細胞どうしの膜を隙間なく密着させる結合。上皮の細胞間を物質が通り抜けるのを防ぐ。'},
+  adherens:{name:'接着結合', desc:'カドヘリンが隣の細胞のカドヘリンと結合し、細胞内ではアクチンフィラメントとつながる固定結合。上皮では細胞を帯状にとり巻く。'},
+  desmo:{name:'デスモソーム', desc:'カドヘリンによって細胞どうしをボタン状に強く結合する固定結合。細胞内では中間径フィラメントとつながる。'},
+  gapj:{name:'ギャップ結合', desc:'隣り合う細胞の膜を貫く管状のタンパク質で細胞質どうしをつなぐ。イオンや低分子の物質が直接移動できる。'},
+  hemi:{name:'ヘミデスモソーム', desc:'インテグリンによって細胞を基底膜（細胞外基質）につなぎとめる固定結合。細胞内では中間径フィラメントとつながる。'},
+  basal:{name:'基底膜', desc:'上皮細胞の基底側にある細胞外基質の薄い層。コラーゲンなどからなり、上皮細胞を支える。'}
+};
+
+/* ---------- SVG 作図ヘルパー ---------- */
+const rad = a => a*Math.PI/180;
+const f1 = n => n.toFixed(1);
+function arcD(cx,cy,r,a1,a2){
+  const x1=cx+r*Math.cos(rad(a1)), y1=cy+r*Math.sin(rad(a1)), x2=cx+r*Math.cos(rad(a2)), y2=cy+r*Math.sin(rad(a2));
+  return `M${f1(x1)} ${f1(y1)} A${r} ${r} 0 ${a2-a1>180?1:0} 1 ${f1(x2)} ${f1(y2)}`;
+}
+function wavyD(x1,y1,x2,y2,amp,n){
+  const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy), nx=-dy/len, ny=dx/len;
+  let d=`M${x1} ${y1}`;
+  for(let i=0;i<n;i++){
+    const tm=(i+.5)/n, t1=(i+1)/n, s=(i%2)?-1:1;
+    d+=` Q${f1(x1+dx*tm+nx*amp*s*2)} ${f1(y1+dy*tm+ny*amp*s*2)} ${f1(x1+dx*t1)} ${f1(y1+dy*t1)}`;
+  }
+  return d;
+}
+const part = (id,inner) => `<g class="part" data-part="${id}">${inner}</g>`;
+const hitP = (d,w) => `<path d="${d}" fill="none" stroke="transparent" stroke-width="${w||14}" stroke-linecap="round"/>`;
+const lineP = (d,c,w,extra) => `<path d="${d}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" ${extra||''}/>`;
+const dot = (x,y,r,c) => `<circle cx="${f1(x)}" cy="${f1(y)}" r="${r}" fill="${c}"/>`;
+
+function mitoSVG(cx,cy,rx,ry,rot){
+  let cr='';
+  for(let i=0;i<5;i++){
+    const x=-rx*.62+i*(rx*1.24/4);
+    cr += (i%2===0) ? `M${f1(x)} ${f1(-ry*.9)} L${f1(x)} ${f1(ry*.25)} ` : `M${f1(x)} ${f1(ry*.9)} L${f1(x)} ${f1(-ry*.25)} `;
+  }
+  return `<g transform="translate(${cx} ${cy}) rotate(${rot})"><ellipse rx="${rx}" ry="${ry}" fill="#f8cfae" stroke="#c7652a" stroke-width="3"/>${lineP(cr,'#c7652a',2.2)}</g>`;
+}
+function chloroSVG(cx,cy,rx,ry,rot){
+  let g='';
+  [-1,0,1].forEach(k=>{
+    const x=k*rx*.5;
+    for(let j=0;j<3;j++) g+=`<rect x="${f1(x-rx*.17)}" y="${f1(-6+j*4.2)}" width="${f1(rx*.34)}" height="3.2" rx="1.2" fill="#2f7a2c"/>`;
+  });
+  return `<g transform="translate(${cx} ${cy}) rotate(${rot})"><ellipse rx="${rx}" ry="${ry}" fill="#a3dc86" stroke="#3f8f3a" stroke-width="2.5"/>${lineP(`M${f1(-rx*.75)} 0 L${f1(rx*.75)} 0`,'#4e9a45',1.2)}${g}</g>`;
+}
+function nucleusSVG(cx,cy,r,pid,nlx,nly,nlr,poreAngles){
+  const chrom = [wavyD(cx-r*.6,cy-r*.25,cx-r*.1,cy+r*.35,3,5), wavyD(cx+r*.2,cy+r*.4,cx+r*.6,cy-r*.05,3,4), wavyD(cx-r*.45,cy+r*.55,cx+r*.05,cy+r*.7,2.5,4)];
+  let s = part('nucleus', `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#ece3fa" stroke="#7a5cc0" stroke-width="5"/>${chrom.map(d=>lineP(d,'#c4b2ea',3)).join('')}`);
+  s += part('pore', poreAngles.map(a=>{
+    const x=cx+r*Math.cos(rad(a)), y=cy+r*Math.sin(rad(a));
+    return `<circle cx="${f1(x)}" cy="${f1(y)}" r="4.5" fill="#fff" stroke="#7a5cc0" stroke-width="2"/><circle cx="${f1(x)}" cy="${f1(y)}" r="11" fill="transparent"/>`;
+  }).join(''));
+  s += part('nucleolus', `<circle cx="${nlx}" cy="${nly}" r="${nlr}" fill="#8e6fd1"/>`);
+  return s;
+}
+function golgiSVG(cx,cy,radii,a1,a2,ves){
+  return part('golgi', radii.map(r=>lineP(arcD(cx,cy,r,a1,a2),'#e08a2e',6)+hitP(arcD(cx,cy,r,a1,a2),12)).join('') + ves.map(([x,y])=>`<circle cx="${x}" cy="${y}" r="5" fill="#f5bd7a" stroke="#e08a2e" stroke-width="1.5"/>`).join(''));
+}
+function rerSVG(cx,cy,radii,a1,a2){
+  let s='';
+  radii.forEach(r=>{
+    s += lineP(arcD(cx,cy,r,a1,a2),'#4f7fd6',5) + hitP(arcD(cx,cy,r,a1,a2),12);
+    for(let a=a1+2;a<=a2-2;a+=7) s += dot(cx+(r+4)*Math.cos(rad(a)), cy+(r+4)*Math.sin(rad(a)), 2.2, '#334155');
+  });
+  return part('rer', s);
+}
+
+function svgAnimal(){
+  const C=[300,210];
+  let s = `<svg viewBox="0 0 640 440" role="img" aria-label="動物細胞の模式図">`;
+  s += part('cytosol', `<ellipse cx="320" cy="220" rx="288" ry="193" fill="var(--cyto)"/>`);
+  // 微小管（中心体から放射状）
+  const mt = [[550,115],[440,50],[360,44],[580,175],[250,62]].map(([x,y])=>`M436 140 L${x} ${y}`);
+  s += part('mt', mt.map(d=>lineP(d,'#2e9e5b',3.2)+hitP(d,13)).join(''));
+  // 中間径フィラメント（核の周囲から細胞膜へ）
+  const ifs = [wavyD(285,294,268,392,4,7), wavyD(325,293,350,392,4,7), wavyD(372,258,400,390,4,8)];
+  s += part('if', ifs.map(d=>lineP(d,'#3b82c4',2.6)+hitP(d,13)).join(''));
+  // アクチンフィラメント（細胞膜直下の網目）
+  s += part('actin', `<ellipse cx="320" cy="220" rx="274" ry="179" fill="none" stroke="#d9534f" stroke-width="2.6" stroke-dasharray="9 4"/><ellipse cx="320" cy="220" rx="268" ry="173" fill="none" stroke="#e8908d" stroke-width="1.4" stroke-dasharray="3 6"/><ellipse cx="320" cy="220" rx="272" ry="177" fill="none" stroke="transparent" stroke-width="14"/>`);
+  // 細胞膜
+  s += part('membrane', `<ellipse cx="320" cy="220" rx="290" ry="195" fill="none" stroke="#d98b2b" stroke-width="6"/><ellipse cx="320" cy="220" rx="291" ry="196" fill="none" stroke="transparent" stroke-width="16"/>`);
+  s += rerSVG(C[0],C[1],[100,113,126],145,215);
+  const ser = [wavyD(112,302,216,298,5,6), wavyD(122,326,212,332,5,6)];
+  s += part('ser', ser.map(d=>lineP(d,'#8dbbf2',6)+hitP(d,14)).join(''));
+  s += nucleusSVG(300,210,85,'nucleus',318,198,24,[15,80,135,200,260,320]);
+  s += golgiSVG(530,250,[60,70,80,90],152,208,[[432,222],[426,300],[500,206]]);
+  s += part('mito', mitoSVG(150,110,45,22,-20) + mitoSVG(450,342,40,20,20));
+  s += part('lyso', `<circle cx="545" cy="205" r="15" fill="#f6b8cf" stroke="#c2416e" stroke-width="2"/>${dot(540,200,2,'#c2416e')}${dot(550,208,2,'#c2416e')}${dot(542,212,2,'#c2416e')}`);
+  const rb = [[0,0],[10,-6],[-9,-5],[14,6],[-13,7],[3,10],[-3,-12],[20,-2],[-20,0]];
+  s += part('ribo', rb.map(([x,y])=>dot(200+x,378+y,3,'#334155')).join('') + `<circle cx="200" cy="378" r="24" fill="transparent"/>`);
+  s += part('centro', `<circle cx="438" cy="140" r="21" fill="rgba(46,158,91,.16)"/><rect x="426" y="129" width="8" height="22" rx="2" fill="#2f7a4a"/><rect x="436" y="136" width="22" height="8" rx="2" fill="#2f7a4a"/>`);
+  return s + `</svg>`;
+}
+
+function svgPlant(){
+  let s = `<svg viewBox="0 0 640 440" role="img" aria-label="植物細胞の模式図">`;
+  s += part('cytosol', `<rect x="34" y="34" width="572" height="372" rx="12" fill="var(--cyto2)"/>`);
+  s += part('vacuole', `<ellipse cx="360" cy="230" rx="165" ry="125" fill="#d7ebfb" stroke="#5a9bd4" stroke-width="3"/>`);
+  s += rerSVG(110,115,[66,78],-50,50);
+  s += nucleusSVG(110,115,52,'nucleus',120,108,15,[150,200,250,300,95]);
+  s += part('mito', mitoSVG(262,66,30,13,10) + mitoSVG(96,236,28,13,-30));
+  s += part('chloro', chloroSVG(86,312,38,18,20) + chloroSVG(232,386,38,15,0) + chloroSVG(572,222,38,16,90) + chloroSVG(470,66,36,15,-8));
+  s += golgiSVG(592,362,[30,38,46],150,210,[[536,330],[540,392]]);
+  s += part('membrane', `<rect x="34" y="34" width="572" height="372" rx="12" fill="none" stroke="#d98b2b" stroke-width="3"/><rect x="34" y="34" width="572" height="372" rx="12" fill="none" stroke="transparent" stroke-width="9"/>`);
+  s += part('wall', `<rect x="20" y="20" width="600" height="400" rx="18" fill="none" stroke="#7aa84a" stroke-width="14"/><rect x="20" y="20" width="600" height="400" rx="18" fill="none" stroke="#5f8c35" stroke-width="1.5" stroke-dasharray="14 8"/>`);
+  return s + `</svg>`;
+}
+
+function svgEpi(){
+  let s = `<svg viewBox="0 0 640 440" role="img" aria-label="小腸の上皮細胞の模式図">`;
+  s += `<rect x="0" y="0" width="640" height="440" fill="#f8fafc"/>`;
+  s += `<text x="320" y="24" text-anchor="middle" font-size="14" fill="#64748b">管腔側（頂端側）</text><text x="320" y="428" text-anchor="middle" font-size="14" fill="#64748b">基底側</text>`;
+  const X = [40,230,420], W = 180;
+  // 細胞本体
+  s += part('cytosol', X.map(x=>`<rect x="${x}" y="90" width="${W}" height="280" rx="6" fill="var(--cyto)" stroke="#d98b2b" stroke-width="3"/>`).join(''));
+  // 核
+  s += part('nucleus', X.map(x=>`<ellipse cx="${x+90}" cy="268" rx="32" ry="38" fill="#ece3fa" stroke="#7a5cc0" stroke-width="4"/>${dot(x+96,262,8,'#8e6fd1')}`).join(''));
+  // 微絨毛（内部にアクチンの束）
+  let mv='';
+  X.forEach(x=>{ for(let k=0;k<6;k++){ const mx=x+10+k*28; mv += `<rect x="${mx}" y="56" width="17" height="38" rx="8" fill="var(--cyto)" stroke="#d98b2b" stroke-width="2.5"/>${lineP(`M${mx+8.5} 62 L${mx+8.5} 112`,'#d9534f',2.2)}`; } });
+  s += part('microvilli', mv);
+  // 細胞間の結合（2か所のすき間）
+  const gaps = [[220,230],[410,420]];
+  let tj='', aj='', ds='', gj='';
+  gaps.forEach(([L,R])=>{
+    tj += [100,107,114].map(y=>lineP(`M${L-4} ${y} L${R+4} ${y}`,'#8b5cf6',3)).join('') + `<rect x="${L-10}" y="94" width="30" height="27" fill="transparent"/>`;
+    aj += [137,142,147].map(y=>lineP(`M${L} ${y} L${R} ${y}`,'#f59e0b',1.8)).join('') + lineP(`M${L-44} 142 L${L-3} 142`,'#d9534f',4) + lineP(`M${R+3} 142 L${R+44} 142`,'#d9534f',4) + `<rect x="${L-46}" y="129" width="${R-L+92}" height="26" fill="transparent"/>`;
+    ds += `<rect x="${L-8}" y="198" width="6" height="34" rx="2" fill="#475569"/><rect x="${R+2}" y="198" width="6" height="34" rx="2" fill="#475569"/>` +
+      [204,210,216,222,228].map(y=>lineP(`M${L-2} ${y} L${R+2} ${y}`,'#f59e0b',1.4)).join('') +
+      [wavyD(L-8,206,L-52,180,3,4), wavyD(L-8,224,L-52,252,3,4), wavyD(R+8,206,R+52,180,3,4), wavyD(R+8,224,R+52,252,3,4)].map(d=>lineP(d,'#3b82c4',2.4)).join('') +
+      `<rect x="${L-50}" y="174" width="${R-L+100}" height="84" fill="transparent"/>`;
+    gj += [281,290,299,308].map(y=>`<rect x="${L-4}" y="${y}" width="${R-L+8}" height="6" rx="2" fill="#10b981" stroke="#047857" stroke-width="1"/>`).join('') + `<rect x="${L-10}" y="274" width="${R-L+20}" height="44" fill="transparent"/>`;
+  });
+  s += part('tight', tj) + part('adherens', aj) + part('desmo', ds) + part('gapj', gj);
+  // 基底膜とヘミデスモソーム
+  let bl = `<rect x="20" y="378" width="600" height="16" rx="3" fill="#dcc79c" stroke="#a68a55" stroke-width="1.5"/>`;
+  for(let x=28;x<612;x+=16) bl += lineP(`M${x} 381 L${x+10} 391`,'#b89a62',1.2);
+  s += part('basal', bl);
+  let hd='';
+  X.forEach(x=>[x+45,x+135].forEach(hx=>{
+    hd += `<rect x="${hx-12}" y="362" width="24" height="6" rx="2" fill="#475569"/>` + [hx-7,hx,hx+7].map(ix=>lineP(`M${ix} 368 L${ix} 379`,'#0ea5e9',2)).join('') +
+      lineP(wavyD(hx-6,362,hx-14,330,2.5,3),'#3b82c4',2.2) + lineP(wavyD(hx+6,362,hx+14,330,2.5,3),'#3b82c4',2.2) +
+      `<rect x="${hx-18}" y="326" width="36" height="54" fill="transparent"/>`;
+  }));
+  s += part('hemi', hd);
+  return s + `</svg>`;
+}
+
+const DIAGRAMS = {
+  animal:{title:'動物細胞', svg:svgAnimal, parts:['membrane','nucleus','nucleolus','pore','mito','rer','ser','golgi','lyso','centro','ribo','actin','mt','if']},
+  plant:{title:'植物細胞', svg:svgPlant, parts:['wall','membrane','vacuole','chloro','nucleus','mito','golgi']},
+  epi:{title:'上皮細胞（小腸・縦断面）', svg:svgEpi, parts:['tight','adherens','desmo','gapj','hemi','basal','microvilli']}
+};
+const CYTO = ['actin','mt','if'];
+
+/* =========================================================
+   ゲーム1：細胞図クリック
+   ========================================================= */
+let dg = null;
+function startDiagram(){
+  let qs;
+  if(isClass()){
+    const an = shuffle(CYTO.slice()).slice(0,2).concat(shuffle(DIAGRAMS.animal.parts.filter(p=>!CYTO.includes(p))).slice(0,2));
+    qs = shuffle(an).map(p=>({d:'animal',p}))
+      .concat(shuffle(DIAGRAMS.plant.parts.slice()).slice(0,2).map(p=>({d:'plant',p})))
+      .concat(shuffle(DIAGRAMS.epi.parts.slice()).slice(0,4).map(p=>({d:'epi',p})));
+  }else{
+    qs = ['animal','plant','epi'].flatMap(d=>shuffle(DIAGRAMS[d].parts.slice()).map(p=>({d,p})));
+  }
+  dg = {qs, i:0, score:0, correct:0, wrong:[], t0:Date.now(), cur:null, locked:false};
+  show('scr-diagram');
+  renderDiagramQ();
+}
+function renderDiagramQ(){
+  const q = dg.qs[dg.i];
+  if(dg.cur !== q.d){
+    $('#dg-svg').innerHTML = DIAGRAMS[q.d].svg();
+    dg.cur = q.d;
+  }
+  $$('#dg-svg .part').forEach(g=>g.classList.remove('hl-ok','hl-ng'));
+  $('#dg-prompt').innerHTML = `<span class="target">${esc(PARTS[q.p].name)}</span> をクリックしよう`;
+  $('#dg-which').textContent = DIAGRAMS[q.d].title;
+  $('#dg-prog').textContent = `${dg.i+1} / ${dg.qs.length} 問`;
+  $('#dg-score').textContent = `${dg.score} 点`;
+  if(dg.i>0) $('#dg-fb').innerHTML = `<div class="head">図の中をクリックしよう</div>`;
+  dg.locked = false;
+  dg.qStart = performance.now();
+}
+function onDiagramClick(e){
+  if(!dg || dg.locked) return;
+  const g = e.target.closest('[data-part]');
+  if(!g) return;
+  const q = dg.qs[dg.i], hit = g.dataset.part;
+  dg.locked = true;
+  const sec = (performance.now()-dg.qStart)/1000;
+  const correctEls = $$(`#dg-svg [data-part="${q.p}"]`);
+  correctEls.forEach(el=>el.classList.add('hl-ok'));
+  let html;
+  if(hit === q.p){
+    const bonus = sec<=5 ? 5 : sec<=10 ? 2 : 0;
+    dg.score += 10 + bonus; dg.correct++;
+    html = `<div class="fb ok"><div class="head">⭕ 正解！ +${10+bonus}点${bonus?`（スピードボーナス +${bonus}）`:''}</div><div class="exp"><b>${esc(PARTS[q.p].name)}</b>：${esc(PARTS[q.p].desc)}</div>`;
+  }else{
+    g.classList.add('hl-ng');
+    dg.wrong.push({id:`D-${q.d}-${q.p}`, q:`[${DIAGRAMS[q.d].title}] ${PARTS[q.p].name}の位置`, your:PARTS[hit].name, answer:PARTS[q.p].name, exp:PARTS[q.p].desc});
+    html = `<div class="fb ng"><div class="head">✕ そこは「${esc(PARTS[hit].name)}」</div><div class="exp">緑に光っているところが <b>${esc(PARTS[q.p].name)}</b>。${esc(PARTS[q.p].desc)}</div>`;
+  }
+  const last = dg.i === dg.qs.length-1;
+  html += `<div class="actions"><button class="btn" id="dg-next">${last?'結果を見る':'次へ ▶'}</button></div></div>`;
+  $('#dg-fb').innerHTML = html;
+  $('#dg-score').textContent = `${dg.score} 点`;
+  $('#dg-next').onclick = nextDiagram;
+  $('#dg-next').focus({preventScroll:true});
+}
+function nextDiagram(){
+  dg.i++;
+  if(dg.i >= dg.qs.length){
+    finishGame({key:'diagram', game:'細胞図クリック', score:dg.score, correct:dg.correct, total:dg.qs.length, seconds:Math.round((Date.now()-dg.t0)/1000), wrong:dg.wrong});
+    dg = null; return;
+  }
+  renderDiagramQ();
+}
+$('#dg-svg').addEventListener('click', onDiagramClick);
+
+/* ---------- 図鑑（観察モード） ---------- */
+let zkCur = 'animal';
+function startZukan(){
+  show('scr-zukan');
+  $('#zk-tabs').innerHTML = Object.entries(DIAGRAMS).map(([k,v])=>`<button class="tab${k===zkCur?' on':''}" data-k="${k}">${esc(v.title)}</button>`).join('');
+  $$('#zk-tabs .tab').forEach(b=>b.onclick=()=>{ zkCur=b.dataset.k; startZukan(); });
+  $('#zk-svg').innerHTML = DIAGRAMS[zkCur].svg();
+  const ids = DIAGRAMS[zkCur].parts.concat(['cytosol']).filter((v,i,a)=>a.indexOf(v)===i);
+  if(zkCur==='epi') ids.push('nucleus');
+  $('#zk-legend').innerHTML = ids.map(id=>`<button data-p="${id}">${esc(PARTS[id].name)}</button>`).join('');
+  $$('#zk-legend button').forEach(b=>b.onclick=()=>zukanSelect(b.dataset.p));
+  $('#zk-fb').innerHTML = `<div class="head">図の部分をクリック</div><div class="exp">下の名前ボタンを押すと、図の中の位置が光ります。</div>`;
+}
+function zukanSelect(id){
+  $$('#zk-svg .part').forEach(g=>g.classList.toggle('hl-sel', g.dataset.part===id));
+  $$('#zk-legend button').forEach(b=>b.classList.toggle('on', b.dataset.p===id));
+  $('#zk-fb').innerHTML = `<div class="head">${esc(PARTS[id].name)}</div><div class="exp">${esc(PARTS[id].desc)}</div>`;
+}
+$('#zk-svg').addEventListener('click', e=>{ const g=e.target.closest('[data-part]'); if(g) zukanSelect(g.dataset.part); });
+
+/* =========================================================
+   ゲーム2：タイムアタック4択   a[0] が正解
+   ========================================================= */
+const QUIZ = [
+  {id:'Q01', q:'細胞膜の基本構造として正しいものは？', a:['リン脂質の二重層に膜タンパク質がはまり込んだ構造','セルロースが網目状に重なった構造','タンパク質だけが一層に並んだ構造','DNAが二重らせんを巻いた構造'], e:'細胞膜はリン脂質二重層に膜タンパク質がモザイク状に分布した構造で、膜の成分は流動的に動いている。'},
+  {id:'Q02', q:'二重膜で包まれている構造の組み合わせは？', a:['核・ミトコンドリア・葉緑体','ゴルジ体・リソソーム・液胞','小胞体・中心体・リボソーム','細胞壁・液胞・中心体'], e:'核（核膜）、ミトコンドリア、葉緑体は二重膜で包まれている。'},
+  {id:'Q03', q:'独自のDNAをもつ細胞小器官の組み合わせは？', a:['ミトコンドリアと葉緑体','小胞体とゴルジ体','核小体と中心体','リボソームとリソソーム'], e:'ミトコンドリアと葉緑体は独自のDNAをもち、分裂して増える。共生説の根拠の一つ。'},
+  {id:'Q04', q:'膜に包まれていない構造はどれ？', a:['リボソーム','リソソーム','ゴルジ体','液胞'], e:'リボソームはrRNAとタンパク質からなる粒子で、膜をもたない（中心体も膜をもたない）。'},
+  {id:'Q05', q:'分泌タンパク質が細胞外へ出るまでの経路として正しいものは？', a:['粗面小胞体 → ゴルジ体 → 分泌小胞 → 細胞外','ゴルジ体 → 粗面小胞体 → リソソーム → 細胞外','核小体 → 核膜孔 → ゴルジ体 → 細胞外','滑面小胞体 → ミトコンドリア → 分泌小胞 → 細胞外'], e:'粗面小胞体のリボソームで合成されたタンパク質は、ゴルジ体で修飾・選別され、小胞によって細胞外へ分泌される（エキソサイトーシス）。'},
+  {id:'Q06', q:'rRNAの合成とリボソームの組み立てが行われる場所は？', a:['核小体','ゴルジ体','中心体','滑面小胞体'], e:'核小体ではrRNAが合成され、リボソームの組み立てが行われる。'},
+  {id:'Q07', q:'ゴルジ体の主な働きは？', a:['タンパク質の修飾・選別と小胞による輸送','呼吸によるATPの合成','光エネルギーを用いた有機物の合成','DNAの複製と転写'], e:'ゴルジ体は小胞体から送られたタンパク質に糖を付加するなどの修飾を行い、行き先ごとに選別して送り出す。'},
+  {id:'Q08', q:'リソソームの主な働きは？', a:['加水分解酵素によって物質や不要な細胞小器官を分解する','ATPを合成する','紡錘体をつくる','タンパク質を合成する'], e:'リソソームは加水分解酵素を含み、取り込んだ物質や古くなった細胞小器官を分解する。'},
+  {id:'Q09', q:'原核細胞にも存在する構造はどれ？', a:['リボソーム','ミトコンドリア','核膜','ゴルジ体'], e:'原核細胞は核膜や膜で包まれた細胞小器官をもたないが、細胞膜・リボソーム・DNAはもつ。'},
+  {id:'Q10', q:'ミトコンドリアの内膜がひだ状になった部分を何という？', a:['クリステ','グラナ','ストロマ','チラコイド'], e:'内膜のひだはクリステ。グラナ・チラコイド・ストロマは葉緑体の構造。'},
+  {id:'Q11', q:'葉緑体の内部で、チラコイドが積み重なった部分を何という？', a:['グラナ','クリステ','マトリックス','核小体'], e:'チラコイドが重なった部分をグラナ、そのまわりの基質部分をストロマという。'},
+  {id:'Q12', q:'植物細胞の細胞壁の主成分は？', a:['セルロース','リン脂質','キチン','ケラチン'], e:'細胞壁の主成分はセルロース。細胞の形を保ち、物質をよく通す（全透性）。'},
+  {id:'Q13', q:'核膜孔を通って、核から細胞質へ出ていくものは？', a:['核で合成されたmRNA','ミトコンドリア','中心体','細胞膜のリン脂質二重層'], e:'核で転写されたmRNAは核膜孔を通って細胞質に出て、リボソームで翻訳される。'},
+  {id:'Q14', q:'滑面小胞体の働きとして正しいものは？', a:['脂質の合成やCa²⁺の貯蔵','rRNAの合成','光合成','紡錘体の形成'], e:'滑面小胞体はリボソームが付着しておらず、脂質の合成や、筋細胞ではCa²⁺の貯蔵などを行う。'},
+  {id:'Q15', q:'特定のイオンを濃度勾配にしたがって通す膜タンパク質は？', a:['チャネル','カドヘリン','インテグリン','チューブリン'], e:'チャネルは特定のイオンなどを受動輸送で通す通路となる膜タンパク質。'},
+  {id:'Q16', q:'成長した植物細胞で大きく発達し、細胞液を含む構造は？', a:['液胞','リソソーム','ゴルジ体','中心体'], e:'液胞は液胞膜に包まれ、細胞液に糖・有機酸・色素（アントシアン）などを含む。'},
+  {id:'Q17', q:'細胞骨格の3種類を、太い順に並べたものは？', a:['微小管 ＞ 中間径フィラメント ＞ アクチンフィラメント','アクチンフィラメント ＞ 微小管 ＞ 中間径フィラメント','中間径フィラメント ＞ アクチンフィラメント ＞ 微小管','微小管 ＞ アクチンフィラメント ＞ 中間径フィラメント'], e:'微小管（約25nm）＞中間径フィラメント（約10nm）＞アクチンフィラメント（約7nm）。'},
+  {id:'Q18', q:'微小管を構成するタンパク質は？', a:['チューブリン','アクチン','ケラチン','ミオシン'], e:'微小管はチューブリンが重合してできた中空の管。'},
+  {id:'Q19', q:'アクチンフィラメントの直径はおよそどれくらい？', a:['約7nm','約25nm','約10nm','約1µm'], e:'アクチンフィラメントは約7nmで細胞骨格の中でもっとも細い。'},
+  {id:'Q20', q:'中間径フィラメントの主な働きは？', a:['細胞や核の形を保ち、引っ張る力に対する強さを与える','紡錘体をつくって染色体を移動させる','ミオシンとともに筋収縮を起こす','繊毛や鞭毛の内部構造をつくる'], e:'中間径フィラメントは引っ張る力に強く、細胞や核の形を保つ。'},
+  {id:'Q21', q:'細胞分裂のとき、紡錘体をつくる細胞骨格は？', a:['微小管','アクチンフィラメント','中間径フィラメント','セルロース繊維'], e:'紡錘体は微小管からなり、染色体を両極へ移動させる。'},
+  {id:'Q22', q:'繊毛や鞭毛の内部構造をつくる細胞骨格は？', a:['微小管','アクチンフィラメント','中間径フィラメント','コラーゲン繊維'], e:'繊毛・鞭毛の内部には微小管が規則正しく並び、ダイニンの働きで屈曲運動をする。'},
+  {id:'Q23', q:'アメーバ運動や細胞質流動（原形質流動）に関わる組み合わせは？', a:['アクチンフィラメントとミオシン','微小管とキネシン','中間径フィラメントとダイニン','微小管とミオシン'], e:'アクチンフィラメントとミオシンの相互作用によって、アメーバ運動や細胞質流動が起こる。'},
+  {id:'Q24', q:'動物細胞の細胞質分裂で、細胞をくびれさせる構造は？', a:['アクチンフィラメント（収縮環）','微小管','中間径フィラメント','細胞板'], e:'動物細胞ではアクチンフィラメントとミオシンがつくる収縮環がくびれをつくる。植物細胞では細胞板が形成される。'},
+  {id:'Q25', q:'キネシンは主にどのように移動するモータータンパク質？', a:['微小管の上を＋端方向へ','微小管の上を−端方向へ','アクチンフィラメントの上を移動する','中間径フィラメントの上を移動する'], e:'キネシンは主に微小管の＋端方向（細胞の周辺側）へ小胞などを運ぶ。'},
+  {id:'Q26', q:'ダイニンについて正しいものは？', a:['微小管の上を主に−端方向へ移動し、繊毛・鞭毛の運動にも関わる','アクチンフィラメントの上を移動し、筋収縮を起こす','中間径フィラメントをつくるタンパク質である','細胞どうしを接着させる膜タンパク質である'], e:'ダイニンは微小管の上を主に−端方向へ移動する。繊毛・鞭毛を屈曲させる働きももつ。'},
+  {id:'Q27', q:'ミオシンが結合して移動する細胞骨格は？', a:['アクチンフィラメント','微小管','中間径フィラメント','核ラミナ'], e:'ミオシンはATPのエネルギーを使ってアクチンフィラメントの上を移動する。'},
+  {id:'Q28', q:'モータータンパク質が運動するときのエネルギー源は？', a:['ATPの分解で放出されるエネルギー','光エネルギー','グルコースを直接燃焼させた熱','浸透圧の差'], e:'ミオシン・キネシン・ダイニンはATPを分解して得たエネルギーで運動する。'},
+  {id:'Q29', q:'中心体から放射状に伸びる細胞骨格は？', a:['微小管','アクチンフィラメント','中間径フィラメント','微絨毛'], e:'中心体は微小管が伸びる起点（形成中心）となる。'},
+  {id:'Q30', q:'小腸上皮の微絨毛の内部を支えている細胞骨格は？', a:['アクチンフィラメント','微小管','中間径フィラメント','コラーゲン'], e:'微絨毛の芯はアクチンフィラメントの束。表面積を広げて吸収効率を高める。'},
+  {id:'Q31', q:'ケラチンが含まれる細胞骨格は？', a:['中間径フィラメント','微小管','アクチンフィラメント','紡錘体'], e:'ケラチンは上皮細胞の中間径フィラメントをつくる。毛や爪の主成分でもある。'},
+  {id:'Q32', q:'上皮細胞の間を隙間なく閉じ、物質が細胞間を通り抜けるのを防ぐ結合は？', a:['密着結合','ギャップ結合','デスモソーム','ヘミデスモソーム'], e:'密着結合は細胞どうしを密着させ、細胞間からの物質の漏れを防ぐ。'},
+  {id:'Q33', q:'カドヘリンと、細胞内のアクチンフィラメントが関わる結合は？', a:['接着結合','デスモソーム','ヘミデスモソーム','ギャップ結合'], e:'接着結合ではカドヘリンが細胞内でアクチンフィラメントとつながる。'},
+  {id:'Q34', q:'カドヘリンと、細胞内の中間径フィラメントが関わる結合は？', a:['デスモソーム','接着結合','密着結合','ギャップ結合'], e:'デスモソームはカドヘリンでボタン状に細胞どうしを結び、細胞内では中間径フィラメントとつながる。'},
+  {id:'Q35', q:'インテグリンによって、細胞を基底膜につなぎとめる結合は？', a:['ヘミデスモソーム','デスモソーム','接着結合','密着結合'], e:'ヘミデスモソームはインテグリンで細胞と基底膜（細胞外基質）を結び、細胞内では中間径フィラメントとつながる。'},
+  {id:'Q36', q:'隣り合う細胞の間で、イオンや低分子が直接移動できる結合は？', a:['ギャップ結合','密着結合','デスモソーム','ヘミデスモソーム'], e:'ギャップ結合は管状のタンパク質で隣の細胞の細胞質とつながり、イオンや低分子を通す。'},
+  {id:'Q37', q:'カドヘリンによる細胞接着に必要なイオンは？', a:['Ca²⁺','Na⁺','K⁺','Cl⁻'], e:'カドヘリンはCa²⁺の存在下で働く。Ca²⁺を除くと細胞どうしの接着が弱まる。'},
+  {id:'Q38', q:'カドヘリンの性質として正しいものは？', a:['同じ種類のカドヘリンどうしが結合する','異なる種類のカドヘリンどうしだけが結合する','基底膜のコラーゲンと結合する','細胞内で微小管と結合する'], e:'カドヘリンには多くの種類があり、同じ種類どうしが結合する。同じカドヘリンをもつ細胞が集まり、組織がつくられる。'},
+  {id:'Q39', q:'インテグリンが細胞の外側で結合する相手は？', a:['細胞外基質（コラーゲンなど）','隣の細胞のカドヘリン','チューブリン','リボソーム'], e:'インテグリンは細胞と細胞外基質の接着に働く膜タンパク質。'},
+  {id:'Q40', q:'次のうち、固定結合に含まれないものは？', a:['ギャップ結合','接着結合','デスモソーム','ヘミデスモソーム'], e:'固定結合は接着結合・デスモソーム・ヘミデスモソーム。ギャップ結合は物質を通す結合。'},
+  {id:'Q41', q:'心筋細胞の間で興奮がすばやく伝わるのに関わる結合は？', a:['ギャップ結合','密着結合','ヘミデスモソーム','接着結合'], e:'心筋細胞はギャップ結合でつながり、イオンが移動することで興奮が隣の細胞へすばやく伝わる。'},
+  {id:'Q42', q:'植物細胞どうしが細胞壁を貫いて細胞質をつなぐ通路は？', a:['原形質連絡','ギャップ結合','核膜孔','密着結合'], e:'植物細胞は細胞壁をもつため、原形質連絡によって隣の細胞と物質をやりとりする。'},
+  {id:'Q43', q:'中心体について正しいものは？', a:['2個の中心小体からなり、微小管形成の起点となる','二重膜に包まれ、ATPを合成する','加水分解酵素を含み、物質を分解する','rRNAとタンパク質からなり、翻訳を行う'], e:'中心体は2個の中心小体からなり、微小管の形成中心となる。動物細胞で見られ、種子植物の細胞では見られない。'},
+  {id:'Q44', q:'上皮細胞の中間径フィラメントが細胞間でつながる結合は？', a:['デスモソーム','接着結合','密着結合','ギャップ結合'], e:'中間径フィラメントはデスモソームを介して隣の細胞とつながり、組織全体で引っ張る力に耐える。'}
+];
+let qz = null, qzTimer = null;
+function startQuiz(){
+  const limit = isClass() ? 60 : 150;
+  qz = {pool:shuffle(QUIZ.slice()), i:-1, left:limit*1000, limit:limit*1000, score:0, combo:0, maxCombo:0, correct:0, total:0, wrong:[], running:false, last:0, t0:Date.now(), waiting:false};
+  show('scr-quiz');
+  clearInterval(qzTimer);
+  qzTimer = setInterval(tickQuiz, 100);
+  nextQuizQ();
+}
+function tickQuiz(){
+  if(!qz) return;
+  const now = performance.now();
+  if(qz.running){ qz.left -= (now - qz.last); }
+  qz.last = now;
+  if(qz.left <= 0){ qz.left = 0; renderQuizStat(); endQuiz(); return; }
+  renderQuizStat();
+}
+function renderQuizStat(){
+  const sec = Math.ceil(qz.left/1000);
+  $('#qz-time').textContent = `⏱ 残り ${sec} 秒`;
+  $('#qz-timer i').style.width = (qz.left/qz.limit*100)+'%';
+  $('#qz-timer').classList.toggle('low', sec<=10);
+  $('#qz-score').textContent = `${qz.score} 点`;
+  $('#qz-combo').textContent = qz.combo>=2 ? `🔥 ${qz.combo} コンボ` : '';
+  $('#qz-count').textContent = `正解 ${qz.correct} / ${qz.total}`;
+}
+function nextQuizQ(){
+  qz.i++;
+  if(qz.i >= qz.pool.length){ endQuiz(); return; }
+  const q = qz.pool[qz.i];
+  qz.order = shuffle([0,1,2,3]);
+  $('#qz-q').textContent = `Q. ${q.q}`;
+  $('#qz-choices').innerHTML = qz.order.map((k,n)=>`<button class="choice" data-k="${k}"><span class="no">${n+1}</span><span>${esc(q.a[k])}</span></button>`).join('');
+  $$('#qz-choices .choice').forEach(b=>b.onclick=()=>answerQuiz(+b.dataset.k));
+  $('#qz-fb').innerHTML = '';
+  qz.waiting = false;
+  qz.last = performance.now();
+  qz.running = true;
+}
+function answerQuiz(k){
+  if(!qz || !qz.running) return;
+  qz.running = false; qz.waiting = true;
+  const q = qz.pool[qz.i];
+  qz.total++;
+  $$('#qz-choices .choice').forEach(b=>{
+    b.disabled = true;
+    if(+b.dataset.k===0) b.classList.add('correct');
+    else if(+b.dataset.k===k) b.classList.add('wrong');
+  });
+  let head;
+  if(k===0){
+    qz.combo++; qz.maxCombo = Math.max(qz.maxCombo, qz.combo); qz.correct++;
+    const bonus = Math.min(qz.combo-1, 5)*2;
+    qz.score += 10 + bonus;
+    head = `<div class="head">⭕ 正解！ +${10+bonus}点${bonus?`（${qz.combo}コンボ）`:''}</div>`;
+    $('#qz-score').classList.remove('pop'); void $('#qz-score').offsetWidth; $('#qz-score').classList.add('pop');
+  }else{
+    qz.combo = 0;
+    qz.left = Math.max(0, qz.left - 3000);
+    qz.wrong.push({id:q.id, q:q.q, your:q.a[k], answer:q.a[0], exp:q.e});
+    head = `<div class="head">✕ ざんねん（−3秒）　正解：${esc(q.a[0])}</div>`;
+  }
+  $('#qz-fb').innerHTML = `<div class="fb ${k===0?'ok':'ng'}">${head}<div class="exp">${esc(q.e)}</div><div class="actions"><button class="btn" id="qz-next">次へ ▶</button></div></div>`;
+  $('#qz-next').onclick = ()=>{ if(qz.left<=0) endQuiz(); else nextQuizQ(); };
+  $('#qz-next').focus({preventScroll:true});
+  renderQuizStat();
+}
+function endQuiz(){
+  if(!qz) return;
+  clearInterval(qzTimer);
+  const r = {key:'quiz', game:'タイムアタック4択', score:qz.score, correct:qz.correct, total:qz.total, seconds:Math.round((Date.now()-qz.t0)/1000), wrong:qz.wrong, extra:`最大 ${qz.maxCombo} コンボ`};
+  qz = null;
+  finishGame(r);
+}
+
+/* =========================================================
+   ゲーム3：分類チャレンジ   cards: [id, 文, 正しい箱, 解説]
+   ========================================================= */
+const SORT_ROUNDS = [
+  {id:'cyto', title:'細胞骨格を分類しよう', core:true, bins:[
+    {id:'actin', name:'アクチンフィラメント', color:'#c2413e'},
+    {id:'mt', name:'微小管', color:'#23804a'},
+    {id:'if', name:'中間径フィラメント', color:'#2f6fae'}],
+   cards:[
+    ['S01','直径 約7nm（いちばん細い）','actin','アクチンフィラメントは直径約7nmで、もっとも細い。'],
+    ['S02','直径 約25nm（中空の管）','mt','微小管は直径約25nmの中空の管で、もっとも太い。'],
+    ['S03','直径 約10nm（太さが中間）','if','中間径フィラメントは直径約8〜12nm。'],
+    ['S04','チューブリンが重合してできる','mt','微小管はチューブリンが重合してできる。'],
+    ['S05','アクチンが重合してできる','actin','アクチンフィラメントは球状のアクチンが重合した繊維。'],
+    ['S06','ケラチンなど多くの種類がある','if','中間径フィラメントは細胞の種類によって構成タンパク質が異なる（ケラチンなど）。'],
+    ['S07','ミオシンとともに筋収縮を起こす','actin','筋収縮はアクチンフィラメントとミオシンの相互作用による。'],
+    ['S08','紡錘体をつくる','mt','紡錘体は微小管からなる。'],
+    ['S09','繊毛・鞭毛の内部構造をつくる','mt','繊毛・鞭毛の内部には微小管が規則正しく並ぶ。'],
+    ['S10','アメーバ運動・細胞質流動','actin','アクチンフィラメントとミオシンの働きで起こる。'],
+    ['S11','動物細胞の細胞質分裂でくびれをつくる','actin','収縮環はアクチンフィラメントとミオシンからなる。'],
+    ['S12','引っ張る力に強く、細胞や核の形を保つ','if','中間径フィラメントは機械的な強さを与える。'],
+    ['S13','キネシンやダイニンが動くレール','mt','キネシンやダイニンは微小管の上を移動する。'],
+    ['S14','デスモソームやヘミデスモソームとつながる','if','デスモソーム・ヘミデスモソームは中間径フィラメントとつながる。'],
+    ['S15','接着結合とつながり、微絨毛の芯にもなる','actin','接着結合や微絨毛ではアクチンフィラメントが働く。'],
+    ['S16','中心体から放射状に伸びる','mt','中心体は微小管の形成中心。']
+   ]},
+  {id:'junction', title:'細胞接着を分類しよう', core:true, bins:[
+    {id:'tight', name:'密着結合', color:'#7c3aed'},
+    {id:'adherens', name:'接着結合', color:'#c2410c'},
+    {id:'desmo', name:'デスモソーム', color:'#334155'},
+    {id:'gapj', name:'ギャップ結合', color:'#047857'},
+    {id:'hemi', name:'ヘミデスモソーム', color:'#0369a1'}],
+   cards:[
+    ['J01','細胞どうしの膜を隙間なく密着させる','tight','密着結合は細胞間の隙間をふさぐ。'],
+    ['J02','上皮で物質が細胞間を通り抜けるのを防ぐ','tight','密着結合により、物質は細胞の中を通って運ばれる。'],
+    ['J03','カドヘリン ＋ アクチンフィラメント','adherens','接着結合では、カドヘリンが細胞内でアクチンフィラメントとつながる。'],
+    ['J04','上皮細胞を帯状にとり巻く固定結合','adherens','接着結合は上皮細胞の頂端側近くを帯状にとり巻く。'],
+    ['J05','カドヘリン ＋ 中間径フィラメント','desmo','デスモソームでは、カドヘリンが細胞内で中間径フィラメントとつながる。'],
+    ['J06','細胞どうしをボタン状に強く結ぶ','desmo','デスモソームはボタン状（斑点状）の結合。'],
+    ['J07','インテグリン ＋ 中間径フィラメント','hemi','ヘミデスモソームはインテグリンで基底膜と結合する。'],
+    ['J08','細胞を基底膜につなぎとめる','hemi','ヘミデスモソームは細胞と細胞外基質（基底膜）の結合。'],
+    ['J09','管状のタンパク質で隣の細胞と細胞質をつなぐ','gapj','ギャップ結合は管状の構造で細胞質どうしをつなぐ。'],
+    ['J10','イオンや低分子が隣の細胞へ直接移動できる','gapj','ギャップ結合を通してイオンや低分子が移動する。'],
+    ['J11','心筋細胞の間で興奮をすばやく伝える','gapj','心筋ではギャップ結合を通してイオンが移動し、興奮が伝わる。']
+   ]},
+  {id:'motor', title:'モータータンパク質を分類しよう', core:false, bins:[
+    {id:'myosin', name:'ミオシン', color:'#c2413e'},
+    {id:'kinesin', name:'キネシン', color:'#23804a'},
+    {id:'dynein', name:'ダイニン', color:'#6d28d9'}],
+   cards:[
+    ['M01','アクチンフィラメントの上を動く','myosin','ミオシンはアクチンフィラメントと相互作用する。'],
+    ['M02','筋収縮でアクチンフィラメントをたぐり寄せる','myosin','筋収縮はミオシンがアクチンフィラメントをたぐり寄せて起こる。'],
+    ['M03','動物細胞の細胞質分裂（収縮環）で働く','myosin','収縮環はアクチンフィラメントとミオシンからなる。'],
+    ['M04','微小管の上を主に＋端方向へ移動する','kinesin','キネシンは主に＋端方向へ移動する。'],
+    ['M05','神経の細胞体から軸索の末端へ小胞を運ぶ','kinesin','軸索の微小管は＋端が末端側を向き、キネシンが末端方向へ運ぶ。'],
+    ['M06','微小管の上を主に−端方向へ移動する','dynein','ダイニンは主に−端方向へ移動する。'],
+    ['M07','軸索の末端から細胞体へ物質を運ぶ','dynein','細胞体方向（−端方向）への輸送はダイニンが担う。'],
+    ['M08','繊毛・鞭毛を屈曲させて動かす','dynein','繊毛・鞭毛の微小管の間でダイニンが働き、屈曲運動が起こる。']
+   ]},
+  {id:'cells', title:'どの細胞に見られる？', core:false, bins:[
+    {id:'plant', name:'植物細胞に見られる（動物細胞にはない）', color:'#3f7f2a'},
+    {id:'animal', name:'動物細胞に見られる（種子植物にはない）', color:'#b45309'},
+    {id:'both', name:'動物細胞・植物細胞の両方に見られる', color:'#1d4ed8'}],
+   cards:[
+    ['O01','細胞壁','plant','細胞壁は植物細胞（や菌類・細菌）に見られ、動物細胞にはない。'],
+    ['O02','葉緑体','plant','葉緑体は光合成を行う植物細胞に見られる。'],
+    ['O03','大きく発達した液胞','plant','成長した植物細胞では液胞が大きく発達する。'],
+    ['O04','中心体','animal','中心体は動物細胞に見られ、種子植物の細胞には見られない。'],
+    ['O05','核','both','核は真核細胞に共通。'],
+    ['O06','ミトコンドリア','both','ミトコンドリアは動物・植物の両方の細胞にある。'],
+    ['O07','ゴルジ体','both','ゴルジ体は動物・植物の両方の細胞にある。'],
+    ['O08','小胞体','both','小胞体は動物・植物の両方の細胞にある。'],
+    ['O09','リボソーム','both','リボソームは原核細胞を含むすべての細胞にある。'],
+    ['O10','細胞骨格','both','細胞骨格は動物・植物の両方の細胞にある。'],
+    ['O11','細胞膜','both','細胞膜はすべての細胞にある。']
+   ]}
+];
+let st = null;
+function startSort(){
+  const rounds = SORT_ROUNDS.filter(r=>!isClass() || r.core).map(r=>({...r, cards: isClass() ? shuffle(r.cards.slice()).slice(0,9) : shuffle(r.cards.slice())}));
+  st = {rounds, r:0, score:0, correct:0, total:0, wrong:[], t0:Date.now(), sel:null, missed:new Set(), placed:0};
+  show('scr-sort');
+  renderSortRound();
+}
+function renderSortRound(){
+  const R = st.rounds[st.r];
+  st.sel = null; st.placed = 0;
+  $('#st-title').textContent = R.title;
+  $('#st-round').textContent = `ラウンド ${st.r+1} / ${st.rounds.length}`;
+  $('#st-pool').innerHTML = R.cards.map(c=>`<div class="sortcard" tabindex="0" data-id="${c[0]}">${esc(c[1])}</div>`).join('');
+  const bins = $('#st-bins');
+  bins.style.gridTemplateColumns = `repeat(${R.bins.length}, minmax(0,1fr))`;
+  bins.innerHTML = R.bins.map(b=>`<div class="bin" tabindex="0" data-bin="${b.id}"><div class="bh" style="background:${b.color}">${esc(b.name)}</div><div class="bl"></div></div>`).join('');
+  $('#st-fb').innerHTML = '';
+  $$('#st-pool .sortcard').forEach(attachDrag);
+  $$('#st-bins .bin').forEach(b=>{
+    b.addEventListener('click', ()=>{ if(st && st.sel) judgeSort(st.sel, b.dataset.bin); });
+    b.addEventListener('keydown', e=>{ if((e.key==='Enter'||e.key===' ') && st && st.sel){ e.preventDefault(); judgeSort(st.sel, b.dataset.bin); } });
+  });
+  renderSortStat();
+}
+function renderSortStat(){
+  const R = st.rounds[st.r];
+  $('#st-score').textContent = `${st.score} 点`;
+  $('#st-left').textContent = `のこり ${R.cards.length - st.placed} 枚`;
+}
+function selectCard(el){
+  $$('#st-pool .sortcard').forEach(c=>c.classList.toggle('sel', c===el && !c.classList.contains('sel')));
+  st.sel = el.classList.contains('sel') ? el : null;
+}
+function attachDrag(el){
+  let d = null;
+  el.addEventListener('pointerdown', e=>{
+    if(el.classList.contains('placed')) return;
+    d = {x:e.clientX, y:e.clientY, moved:false, id:e.pointerId};
+    el.setPointerCapture(e.pointerId);
+  });
+  el.addEventListener('pointermove', e=>{
+    if(!d) return;
+    const dx=e.clientX-d.x, dy=e.clientY-d.y;
+    if(!d.moved && Math.hypot(dx,dy)>6){ d.moved = true; el.classList.add('dragging'); }
+    if(d.moved){
+      el.style.transform = `translate(${dx}px,${dy}px)`;
+      const over = binAt(e.clientX, e.clientY);
+      $$('#st-bins .bin').forEach(b=>b.classList.toggle('over', b===over));
+    }
+  });
+  const end = e=>{
+    if(!d) return;
+    const moved = d.moved; d = null;
+    el.classList.remove('dragging'); el.style.transform = '';
+    $$('#st-bins .bin').forEach(b=>b.classList.remove('over'));
+    if(moved){
+      const bin = e.type==='pointerup' ? binAt(e.clientX, e.clientY) : null;
+      if(bin) judgeSort(el, bin.dataset.bin);
+    }else if(e.type==='pointerup'){
+      selectCard(el);
+    }
+  };
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', end);
+  el.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); selectCard(el); } });
+}
+function binAt(x,y){
+  const el = document.elementFromPoint(x,y);
+  return el ? el.closest('#st-bins .bin') : null;
+}
+function judgeSort(el, binId){
+  const R = st.rounds[st.r];
+  const c = R.cards.find(c=>c[0]===el.dataset.id);
+  if(!c || el.classList.contains('placed')) return;
+  const binName = id => R.bins.find(b=>b.id===id).name;
+  el.classList.remove('sel'); st.sel = null;
+  if(c[2] === binId){
+    const first = !st.missed.has(c[0]);
+    if(first){ st.score += 10; st.correct++; }
+    st.total++;
+    el.classList.remove('missed');
+    el.classList.add('placed');
+    el.removeAttribute('tabindex');
+    $(`#st-bins .bin[data-bin="${binId}"] .bl`).appendChild(el);
+    st.placed++;
+    $('#st-fb').innerHTML = `<div class="fb ok"><div class="head">⭕ ${first?'正解！ +10点':'正しい箱に入りました'}</div><div class="exp">${esc(c[3])}</div></div>`;
+  }else{
+    if(!st.missed.has(c[0])){
+      st.missed.add(c[0]);
+      st.wrong.push({id:c[0], q:`[${R.title}] ${c[1]}`, your:binName(binId), answer:binName(c[2]), exp:c[3]});
+    }
+    el.classList.add('missed');
+    el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
+    $('#st-fb').innerHTML = `<div class="fb ng"><div class="head">✕ 「${esc(c[1])}」は「${esc(binName(binId))}」ではありません</div><div class="exp">正解は <b>${esc(binName(c[2]))}</b>。${esc(c[3])}　もう一度、正しい箱へ入れよう。</div></div>`;
+  }
+  renderSortStat();
+  if(st.placed === R.cards.length){
+    const last = st.r === st.rounds.length-1;
+    $('#st-fb').innerHTML += `<div class="fb info"><div class="head">🎉 ラウンドクリア！</div><div class="actions"><button class="btn" id="st-next">${last?'結果を見る':'次のラウンドへ ▶'}</button></div></div>`;
+    $('#st-next').onclick = ()=>{
+      st.r++;
+      if(st.r >= st.rounds.length){
+        const total = st.rounds.reduce((n,r)=>n+r.cards.length,0);
+        finishGame({key:'sort', game:'分類チャレンジ', score:st.score, correct:st.correct, total, seconds:Math.round((Date.now()-st.t0)/1000), wrong:st.wrong});
+        st = null;
+      }else renderSortRound();
+    };
+    $('#st-next').focus({preventScroll:true});
+  }
+}
+
+/* =========================================================
+   ゲーム4：ミクロ探検隊   qs: {core, q, a:[正解,...], e}
+   ========================================================= */
+const MISSION = [
+  {core:true, icon:'🚀', place:'STAGE 1　細胞の外', title:'ミクロ探検隊、出発！', text:'探査艇「ミクロ号」は100万分の1に縮小し、ヒトの小腸の上皮細胞に接近中。目の前に細胞の表面が広がってきた。', qs:[
+    {core:true, q:'細胞の表面をおおう細胞膜は、主に何でできている？', a:['リン脂質の二重層とタンパク質','セルロースとペクチン','DNAとヒストン','キチンとケラチン'], e:'細胞膜はリン脂質二重層に膜タンパク質がはまり込んだ構造をしている。'},
+    {core:false, q:'膜に穴をあけるのは危険だ。特定のイオンだけを通す“通路”を調べよう。この膜タンパク質は？', a:['チャネル','カドヘリン','インテグリン','チューブリン'], e:'チャネルは特定のイオンなどを濃度勾配にしたがって通す膜タンパク質。'}]},
+  {core:true, icon:'🕸️', place:'STAGE 2　細胞膜の直下', title:'細い繊維の網', text:'細胞膜をくぐり抜けると、膜のすぐ内側に細い繊維が網目のように張りめぐらされていた。細胞の形を変えたり、動いたりするのに使われているらしい。', qs:[
+    {core:true, q:'この細い繊維（直径約7nm）は？', a:['アクチンフィラメント','微小管','中間径フィラメント','セルロース繊維'], e:'細胞膜の直下にはアクチンフィラメントが多く、細胞の形の変化や運動に関わる。'}]},
+  {core:true, icon:'🛤️', place:'STAGE 3　微小管ハイウェイ', title:'荷物を運ぶ道', text:'太くまっすぐな管が、細胞の中心付近から放射状に伸びている。小胞を背負ったタンパク質が、管の上を一歩ずつ歩いていく！', qs:[
+    {core:true, q:'この管（微小管）をつくっているタンパク質は？', a:['チューブリン','アクチン','ケラチン','コラーゲン'], e:'微小管はチューブリンが重合してできた中空の管。'},
+    {core:false, q:'小胞を細胞の中心付近（−端）から細胞膜側（＋端）へ運んでいるモータータンパク質は？', a:['キネシン','ダイニン','ミオシン','カドヘリン'], e:'キネシンは主に微小管の＋端方向へ、ダイニンは主に−端方向へ移動する。'}]},
+  {core:false, icon:'🏭', place:'STAGE 4　タンパク質工場', title:'粒だらけの膜', text:'核の近くに、表面に小さな粒がびっしりついた、袋状の膜構造が重なっている。粒ではさかんにタンパク質がつくられている。', qs:[
+    {core:false, q:'この構造は？', a:['粗面小胞体','滑面小胞体','ゴルジ体','リソソーム'], e:'表面にリボソームが付着した小胞体を粗面小胞体という。'},
+    {core:false, q:'ここでつくられた分泌タンパク質が次に運ばれ、修飾・選別される場所は？', a:['ゴルジ体','核小体','ミトコンドリア','中心体'], e:'粗面小胞体 → ゴルジ体 → 分泌小胞 → 細胞外の順に運ばれる。'}]},
+  {core:true, icon:'⚡', place:'STAGE 5　エネルギー基地', title:'ミトコンドリアに到着', text:'ミクロ号の燃料が心細くなってきた。エネルギー反応がさかんな基地に立ち寄ろう。内側の膜がひだのように入り組んでいる。', qs:[
+    {core:true, q:'このひだの名前と、ここで主に行われる働きの組み合わせは？', a:['クリステ ― 呼吸によるATPの合成','グラナ ― 光合成','クリステ ― タンパク質の合成','ストロマ ― 脂質の合成'], e:'ミトコンドリアの内膜のひだはクリステ。呼吸によってATPが合成される。'}]},
+  {core:true, icon:'🧬', place:'STAGE 6　細胞の司令室', title:'核への潜入', text:'細胞の司令室・核の前に到着。核膜にはたくさんの出入り口があいていて、物質が出入りしている。', qs:[
+    {core:true, q:'核膜孔を通って、核から細胞質へ出ていくものは？', a:['mRNA','ミトコンドリア','中心体','細胞膜'], e:'核で転写されたmRNAは核膜孔を通って細胞質へ出て、リボソームで翻訳される。'},
+    {core:false, q:'核膜の内側を裏打ちして、核の形を保っている繊維は？', a:['中間径フィラメント','アクチンフィラメント','微小管','セルロース繊維'], e:'核膜の内側は中間径フィラメント（核ラミナ）で裏打ちされている。'}]},
+  {core:false, icon:'🌀', place:'STAGE 7　分裂中の細胞', title:'となりの細胞が分裂中！', text:'窓の外を見ると、となりの細胞が分裂している。両極から伸びた繊維が染色体をとらえ、紡錘体をつくっている。', qs:[
+    {core:false, q:'紡錘体をつくっている繊維は？', a:['微小管','アクチンフィラメント','中間径フィラメント','コラーゲン'], e:'紡錘体は微小管からなり、染色体を両極へ移動させる。'},
+    {core:false, q:'分裂の終わりに、動物細胞をくびれさせて2つに分けるものは？', a:['アクチンフィラメントとミオシン（収縮環）','微小管とキネシン','細胞板','中間径フィラメントとダイニン'], e:'動物細胞の細胞質分裂では、アクチンフィラメントとミオシンからなる収縮環がくびれをつくる。'}]},
+  {core:true, icon:'🧱', place:'STAGE 8　細胞と細胞のあいだ', title:'閉ざされたすき間', text:'細胞の外へ出て、となりの細胞とのすき間を進もうとした。ところが頂端側（管腔側）のすき間が完全にふさがれていて、まったく進めない！', qs:[
+    {core:true, q:'細胞間を隙間なく閉じ、物質の通り抜けを防いでいる結合は？', a:['密着結合','ギャップ結合','デスモソーム','ヘミデスモソーム'], e:'密着結合は上皮の細胞どうしを密着させ、細胞間からの物質の漏れを防ぐ。'}]},
+  {core:true, icon:'🔩', place:'STAGE 9　固定結合ゾーン', title:'ボタン状の留め具', text:'少し基底側へ回り込むと、細胞どうしをボタンのように強く留めている構造があった。細胞の内側では中間径フィラメントとつながっている。', qs:[
+    {core:true, q:'この結合は？', a:['デスモソーム','接着結合','密着結合','ギャップ結合'], e:'デスモソームはカドヘリンで細胞どうしをボタン状に結び、細胞内で中間径フィラメントとつながる。'},
+    {core:true, q:'この結合ではたらくカドヘリンが接着するために必要なイオンは？', a:['Ca²⁺','Na⁺','K⁺','Cl⁻'], e:'カドヘリンはCa²⁺があるときに働く。'}]},
+  {core:false, icon:'🔌', place:'STAGE 10　細胞をつなぐ小さな管', title:'通れるのはイオンだけ', text:'となりの細胞へ通じる小さな管を見つけた。ミクロ号には小さすぎるが、イオンや低分子なら通れそうだ。探査用のイオンを送り込んでみよう。', qs:[
+    {core:false, q:'隣の細胞の細胞質と直接つながるこの結合は？', a:['ギャップ結合','密着結合','接着結合','ヘミデスモソーム'], e:'ギャップ結合は管状のタンパク質で細胞質どうしをつなぎ、イオンや低分子を通す。'}]},
+  {core:true, icon:'🏁', place:'FINAL STAGE　基底膜', title:'帰還ゲート', text:'最後に細胞の底へ。細胞を基底膜にしっかりつなぎとめている構造がある。その仕組みを解き明かして、帰還ゲートを開こう！', qs:[
+    {core:true, q:'細胞を基底膜につなぎとめる構造と、そこで働く膜タンパク質の組み合わせは？', a:['ヘミデスモソーム ― インテグリン','デスモソーム ― カドヘリン','接着結合 ― カドヘリン','密着結合 ― インテグリン'], e:'ヘミデスモソームではインテグリンが基底膜（細胞外基質）と結合し、細胞内では中間径フィラメントとつながる。'}]}
+];
+let ms = null;
+function startMission(){
+  const stages = MISSION.map((s,i)=>({...s, n:i+1})).filter(s=>!isClass()||s.core).map(s=>({...s, qs:s.qs.filter(q=>!isClass()||q.core)}));
+  const total = stages.reduce((n,s)=>n+s.qs.length,0);
+  ms = {stages, s:0, k:0, energy:5, score:0, correct:0, answered:0, total, wrong:[], t0:Date.now(), busy:false};
+  show('scr-mission');
+  renderMission();
+}
+function renderMission(){
+  const S = ms.stages[ms.s], Q = S.qs[ms.k];
+  $('#ms-energy').textContent = '⚡'.repeat(ms.energy) + '・'.repeat(5-ms.energy) + `　エネルギー ${ms.energy}/5`;
+  $('#ms-score').textContent = `${ms.score} 点`;
+  $('#ms-map').innerHTML = ms.stages.map((x,i)=>`<span class="st ${i<ms.s?'done':i===ms.s?'now':''}">${x.icon} ${i+1}</span>`).join('');
+  $('#ms-icon').textContent = S.icon;
+  $('#ms-place').textContent = S.place;
+  $('#ms-title').textContent = S.title;
+  $('#ms-text').textContent = ms.k===0 ? S.text : '調査を続けよう。';
+  $('#ms-q').textContent = `🔎 ${Q.q}`;
+  ms.order = shuffle([0,1,2,3]);
+  $('#ms-choices').innerHTML = ms.order.map((k,n)=>`<button class="choice" data-k="${k}"><span class="no">${n+1}</span><span>${esc(Q.a[k])}</span></button>`).join('');
+  $$('#ms-choices .choice').forEach(b=>b.onclick=()=>answerMission(+b.dataset.k));
+  $('#ms-fb').innerHTML = '';
+  ms.busy = false;
+}
+function answerMission(k){
+  if(!ms || ms.busy) return;
+  ms.busy = true;
+  const S = ms.stages[ms.s], Q = S.qs[ms.k];
+  ms.answered++;
+  $$('#ms-choices .choice').forEach(b=>{
+    b.disabled = true;
+    if(+b.dataset.k===0) b.classList.add('correct'); else if(+b.dataset.k===k) b.classList.add('wrong');
+  });
+  let head;
+  if(k===0){ ms.correct++; ms.score += 10; head = `<div class="head">⭕ 解析成功！ +10点</div>`; }
+  else{
+    ms.energy--;
+    ms.wrong.push({id:`M${String(S.n).padStart(2,'0')}-${MISSION[S.n-1].qs.indexOf(MISSION[S.n-1].qs.find(x=>x.q===Q.q))+1}`, q:Q.q, your:Q.a[k], answer:Q.a[0], exp:Q.e});
+    head = `<div class="head">✕ 解析失敗… エネルギー −1　正解：${esc(Q.a[0])}</div>`;
+  }
+  $('#ms-energy').textContent = '⚡'.repeat(ms.energy) + '・'.repeat(5-ms.energy) + `　エネルギー ${ms.energy}/5`;
+  $('#ms-score').textContent = `${ms.score} 点`;
+  const lastQ = ms.k === S.qs.length-1, lastS = ms.s === ms.stages.length-1;
+  const dead = ms.energy <= 0;
+  const label = dead ? '緊急帰還…' : (lastQ && lastS) ? '帰還する 🏁' : lastQ ? '次のステージへ ▶' : '次の調査へ ▶';
+  $('#ms-fb').innerHTML = `<div class="fb ${k===0?'ok':'ng'}">${head}<div class="exp">${esc(Q.e)}</div><div class="actions"><button class="btn" id="ms-next">${label}</button></div></div>`;
+  $('#ms-next').onclick = ()=>{
+    if(dead) return endMission(false);
+    if(lastQ && lastS) return endMission(true);
+    if(lastQ){ ms.s++; ms.k=0; } else ms.k++;
+    renderMission();
+  };
+  $('#ms-next').focus({preventScroll:true});
+}
+function endMission(cleared){
+  const bonus = cleared ? ms.energy*10 : 0;
+  const r = {key:'mission', game:'ミクロ探検隊', score:ms.score+bonus, correct:ms.correct, total:ms.answered, seconds:Math.round((Date.now()-ms.t0)/1000), wrong:ms.wrong,
+    extra: cleared ? `帰還成功！ のこりエネルギーボーナス +${bonus}` : `エネルギー切れで緊急帰還（${ms.s+1}/${ms.stages.length} ステージまで到達）`};
+  ms = null;
+  finishGame(r);
+}
+
+/* =========================================================
+   結果・記録
+   ========================================================= */
+const STARTERS = {diagram:startDiagram, quiz:startQuiz, sort:startSort, mission:startMission};
+function finishGame(r){
+  r.rate = r.total ? Math.round(r.correct/r.total*100) : 0;
+  const bestKey = `best_${r.key}_${state.mode}`;
+  const prev = store.get(bestKey, null);
+  const isBest = prev===null || r.score > prev;
+  if(isBest) store.set(bestKey, r.score);
+  state.retry = r.key;
+  show('scr-result');
+  $('#rs-game').textContent = `${r.game}（${isClass()?'授業':'自習'}モード）`;
+  $('#rs-msg').textContent = (r.rate>=90 ? '🏆 すばらしい！' : r.rate>=70 ? '👍 よくできました！' : r.rate>=50 ? '💪 あと少し！' : '📚 ふり返って再挑戦しよう') + (isBest && prev!==null ? '　ベスト更新！' : '');
+  $('#rs-score').textContent = `${r.score} 点`;
+  $('#rs-kpis').innerHTML = [
+    ['正解数', `${r.correct} / ${r.total}`], ['正答率', `${r.rate}%`], ['かかった時間', `${Math.floor(r.seconds/60)}分${r.seconds%60}秒`], ['自己ベスト', `${Math.max(r.score, prev||0)} 点`]
+  ].map(([k,v])=>`<div class="kpi"><span>${k}</span><b>${esc(v)}</b></div>`).join('') + (r.extra?`<div class="kpi"><span>ボーナス</span><b style="font-size:15px">${esc(r.extra)}</b></div>`:'');
+  $('#rs-review').innerHTML = r.wrong.length ? r.wrong.map(w=>`<div class="it"><div class="q">${esc(w.q)}</div><div class="a">あなたの答え：<span class="yr">${esc(w.your)}</span>　／　正解：<span class="cr">${esc(w.answer)}</span></div><div class="e">${esc(w.exp)}</div></div>`).join('') : '<p>まちがえた問題はありません。パーフェクト！🎉</p>';
+  submitResult(r);
+}
+function apiUrl(){
+  try{ const p = new URLSearchParams(location.search).get('api'); if(p) return p; }catch(e){}
+  return CONFIG.GAS_URL;
+}
+function inGas(){ return typeof google!=='undefined' && google.script && google.script.run; }
+function setSend(cls, msg){ const el=$('#rs-send'); el.className='send '+cls; el.textContent=msg; }
+function submitResult(r){
+  const p = state.player;
+  const payload = {clientTime:new Date().toISOString(), course:p.course, number:p.num, name:p.name, game:r.game, mode:isClass()?'授業':'自習',
+    score:r.score, correct:r.correct, total:r.total, rate:r.rate, seconds:r.seconds,
+    wrong:r.wrong.map(w=>({id:w.id, q:w.q, your:w.your, answer:w.answer}))};
+  if(!inGas() && !apiUrl()){ setSend('', '記録先が設定されていないため、結果はこの画面だけに表示されます。'); return; }
+  const q = store.get('queue', []);
+  q.push(payload);
+  store.set('queue', q.slice(-50));
+  flushQueue(true);
+}
+function flushQueue(showStatus){
+  const q = store.get('queue', []);
+  if(!q.length) return;
+  const done = ()=>{ store.set('queue', store.get('queue',[]).slice(q.length)); if(showStatus) setSend('ok', `✅ 結果を記録しました（${q.length}件送信）`); updateMenuStatus(); };
+  const fail = ()=>{ if(showStatus) setSend('ng', '⚠ 記録を送信できませんでした。次にゲームを終えたときに自動で再送します。'); updateMenuStatus(); };
+  if(showStatus) setSend('', '記録を送信中…');
+  if(inGas()){
+    google.script.run.withSuccessHandler(done).withFailureHandler(fail).saveResults(q);
+  }else if(apiUrl()){
+    fetch(apiUrl(), {method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify({results:q})}).then(done).catch(fail);
+  }
+}
+function updateMenuStatus(){
+  const n = store.get('queue',[]).length;
+  const dest = inGas() ? 'Googleスプレッドシート（GAS）' : apiUrl() ? 'Googleスプレッドシート（GAS URL）' : 'なし（この端末で遊ぶだけ）';
+  $('#menu-status').textContent = `記録先：${dest}` + (n ? `　／　未送信の記録 ${n} 件（次の送信時に再送します）` : '');
+}
+
+/* ---------- 画面遷移 ---------- */
+function renderMenu(){
+  show('scr-menu');
+  renderWho();
+  $('#menu-mode').textContent = isClass() ? '授業モード：各ゲーム3〜5分で終わるよう出題数をしぼっています。' : '自習モード：全問出題・制限時間長め。何度でも挑戦しよう（問題は毎回シャッフル）。';
+  $$('[data-best]').forEach(el=>{ const b=store.get(`best_${el.dataset.best}_${state.mode}`, null); el.textContent = b===null ? '' : `自己ベスト：${b} 点`; });
+  updateMenuStatus();
+}
+$$('.gcard').forEach(b=>b.onclick=()=>{ const g=b.dataset.go; if(g==='zukan') startZukan(); else STARTERS[g](); });
+$('#btn-start').onclick = ()=>{
+  const course=$('#in-course').value.trim(), num=$('#in-num').value.trim(), name=$('#in-name').value.trim();
+  if(!course || !num || !name){ $('#start-err').textContent = '講座・クラス、番号、氏名をすべて入力してください。'; return; }
+  state.player = {course:course.slice(0,40), num:num.slice(0,10), name:name.slice(0,40)};
+  state.mode = document.querySelector('input[name=mode]:checked').value;
+  store.set('player', state.player); store.set('mode', state.mode);
+  $('#start-err').textContent = '';
+  renderMenu();
+  flushQueue(false);
+};
+$('#btn-change').onclick = ()=>{ show('scr-start'); renderWho(); };
+$('#btn-home').onclick = ()=>{
+  if((dg||qz||st||ms) && !confirm('ゲームを中断してメニューに戻りますか？（記録は残りません）')) return;
+  clearInterval(qzTimer); dg=qz=st=ms=null;
+  renderMenu();
+};
+$('#rs-retry').onclick = ()=>STARTERS[state.retry]();
+$('#rs-menu').onclick = renderMenu;
+
+document.addEventListener('keydown', e=>{
+  if(e.target.matches('input')) return;
+  const scr = state.screen;
+  if((scr==='scr-quiz' || scr==='scr-mission') && /^[1-4]$/.test(e.key)){
+    const b = $$(`#${scr==='scr-quiz'?'qz':'ms'}-choices .choice`)[+e.key-1];
+    if(b && !b.disabled) b.click();
+  }
+});
+
+/* ---------- 起動 ---------- */
+(function init(){
+  $('#hero-art').innerHTML = svgAnimal();
+  $$('#hero-art .part').forEach(g=>g.classList.remove('part'));
+  const p = store.get('player', null), m = store.get('mode', 'class');
+  if(p){ $('#in-course').value=p.course||''; $('#in-num').value=p.num||''; $('#in-name').value=p.name||''; }
+  const r = document.querySelector(`input[name=mode][value="${m}"]`); if(r) r.checked = true;
+  show('scr-start');
+})();
+</script>
+</body>
+</html>
