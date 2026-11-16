@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<base target="_blank">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root {
+  --bg: #F8F7F6;
+  --surface: #FFFFFF;
+  --ink: #23221F;
+  --muted: #706D65;
+  --line: #E0DDD8;
+  --pill: #23221F;
+  --pill-ink: #FFFFFF;
+  --secret: #C8321E;
+  --d1: #00B8C4; --d2: #3BAA5C; --d3: #F08A24; --d4: #8A63D2; --d5: #E0558A;
+  --sans: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1B1A18; --surface: #262522; --ink: #F1EFEB; --muted: #A8A49B; --line: #3A3834;
+    --pill: #F1EFEB; --pill-ink: #1B1A18; --secret: #F08A78;
+    color-scheme: dark;
+  }
+}
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.7; }
+.wrap { max-width: 1160px; margin: 0 auto; padding: 24px 16px 72px; display: flex; flex-direction: column; gap: 40px; }
+button { font-family: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, #q:focus-visible, a.card:focus-visible { outline: 2px solid var(--d1); outline-offset: 2px; }
+
+.head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 32px; }
+.brand { font-size: 18px; font-weight: 700; letter-spacing: .04em; display: flex; align-items: center; gap: 8px; }
+.brand b { font-size: 11px; font-weight: 700; background: var(--pill); color: var(--pill-ink); padding: 2px 10px; border-radius: 99px; letter-spacing: .06em; }
+.nav { display: flex; flex-wrap: wrap; gap: 4px 24px; flex: 1 1 auto; }
+.nav button { background: none; border: 0; padding: 4px 0; font-size: 14px; font-weight: 700; }
+.nav button:hover { text-decoration: underline; text-underline-offset: 6px; }
+.switch { display: flex; gap: 8px; }
+.switch button { font-size: 13px; font-weight: 700; padding: 9px 20px; border-radius: 99px; background: var(--surface); border: 1px solid var(--pill); }
+.switch button[aria-pressed="true"] { background: var(--pill); color: var(--pill-ink); }
+
+.intro { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 24px 48px; padding: 24px 0 8px; }
+.intro h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 400; letter-spacing: .28em; line-height: 1.7; }
+.intro .side { flex: 1 1 320px; max-width: 460px; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.intro p { margin: 0; color: var(--muted); letter-spacing: .06em; }
+#q { width: 100%; box-sizing: border-box; font: 400 15px var(--sans); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 99px; padding: 11px 20px; }
+
+#list { display: flex; flex-direction: column; gap: 48px; }
+section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 16px; }
+.sechead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+h2 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: .06em; }
+.sechead span { font-size: 13px; color: var(--muted); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+.card { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; min-width: 0; background: var(--surface); border-radius: 6px; padding: 22px 22px 20px; color: var(--ink); text-decoration: none; transition: transform .15s ease; }
+a.card:hover { transform: translateY(-2px); }
+@media (prefers-reduced-motion: reduce) { .card { transition: none; } a.card:hover { transform: none; } }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.cat { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; border: 1px solid var(--ink); border-radius: 99px; padding: 1px 10px 1px 8px; }
+.cat i { width: 7px; height: 7px; border-radius: 50%; background: var(--dot); }
+.secret { font-size: 11px; font-weight: 700; color: var(--secret); border: 1px solid var(--secret); border-radius: 99px; padding: 1px 10px; }
+.name { font-size: 17px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; }
+.desc { font-size: 13px; color: var(--muted); line-height: 1.6; overflow-wrap: anywhere; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.tags span { font-size: 11px; border: 1px solid var(--line); border-radius: 3px; padding: 0 7px; }
+#empty { color: var(--muted); margin: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="brand">校内ポータル <b id="audLabel"></b></div>
+    <div class="nav" id="nav" aria-label="カテゴリへ移動"></div>
+    <div class="switch" id="switch" role="group" aria-label="表示するポータル" hidden>
+      <button type="button" id="btnStaff">教職員用</button>
+      <button type="button" id="btnStudent">生徒用</button>
+    </div>
+  </div>
+
+  <div class="intro">
+    <h1>どこに、<br>何があるか。</h1>
+    <div class="side">
+      <p id="lead"></p>
+      <input id="q" type="search" placeholder="サービス名・用件で探す（例：成績、欠席）" aria-label="絞り込み">
+    </div>
+  </div>
+
+  <div id="list"></div>
+  <p id="empty" hidden>該当する項目がありません。</p>
+</div>
+
+<script>
+// サーバー側（Code.gs）が、この閲覧者に見せてよい項目だけを埋め込む
+const DATA = <?!= dataJson ?>;
+
+const AUD = {
+  staff:   { label: '教職員用', match: ['教職員用', '両方'], lead: '校務で使うサービスと資料の入口です。' },
+  student: { label: '生徒用',   match: ['生徒用', '両方'],   lead: '授業や学校生活で使うサービスの入口です。' }
+};
+const $ = id => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; };
+let aud = DATA.staff ? 'staff' : 'student';
+
+function render() {
+  const a = AUD[aud], q = $('q').value.trim().toLowerCase();
+  $('audLabel').textContent = a.label;
+  $('lead').textContent = a.lead;
+  $('btnStaff').setAttribute('aria-pressed', aud === 'staff');
+  $('btnStudent').setAttribute('aria-pressed', aud === 'student');
+
+  const allCats = [...new Set(DATA.items.map(x => x.cat))];
+  const groups = new Map();
+  for (const x of DATA.items) {
+    if (!a.match.includes(x.aud)) continue;
+    // 教職員が生徒用の表示を確かめるときも、生徒に出ない校外秘の項目は除く
+    if (aud === 'student' && x.secret) continue;
+    if (q && !(x.name + x.desc + x.tag + x.cat).toLowerCase().includes(q)) continue;
+    if (!groups.has(x.cat)) groups.set(x.cat, []);
+    groups.get(x.cat).push(x);
+  }
+
+  const list = $('list'), nav = $('nav');
+  list.textContent = ''; nav.textContent = '';
+  for (const [cat, rows] of groups) {
+    const dotVar = 'var(--d' + (allCats.indexOf(cat) % 5 + 1) + ')';
+    const sec = el('section');
+    const head = el('div', 'sechead');
+    head.append(el('h2', '', cat), el('span', '', rows.length + '件'));
+    const grid = el('div', 'grid');
+    for (const x of rows) {
+      const card = el(x.url ? 'a' : 'div', 'card');
+      if (x.url) { card.href = x.url; card.target = '_blank'; card.rel = 'noopener noreferrer'; }
+      const meta = el('span', 'meta');
+      const c = el('span', 'cat'); const dot = el('i'); dot.style.setProperty('--dot', dotVar); c.append(dot, cat);
+      meta.append(c);
+      if (x.secret) meta.append(el('span', 'secret', '校外秘'));
+      card.append(meta, el('span', 'name', x.name));
+      if (x.desc) card.append(el('span', 'desc', x.desc));
+      if (x.tag) { const t = el('span', 'tags'); t.append(el('span', '', x.tag)); card.append(t); }
+      grid.append(card);
+    }
+    sec.append(head, grid); list.append(sec);
+    const n = el('button', '', cat); n.type = 'button';
+    n.addEventListener('click', () => sec.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    nav.append(n);
+  }
+  $('empty').hidden = groups.size > 0;
+}
+
+// 切り替えボタンは教職員にだけ出す（生徒用の見え方を確かめるため）
+$('switch').hidden = !DATA.staff;
+$('btnStaff').addEventListener('click', () => { aud = 'staff'; render(); });
+$('btnStudent').addEventListener('click', () => { aud = 'student'; render(); });
+$('q').addEventListener('input', render);
+render();
+</script>
+</body>
+</html>
