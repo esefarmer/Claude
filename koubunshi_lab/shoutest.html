@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>高分子 確認小テスト</title>
+<style>
+@page { size: A4; margin: 11mm 14mm; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: #e9eeee; color: #111;
+  font-family: "BIZ UDPMincho", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+  font-size: 10pt; line-height: 1.5;
+}
+.gothic, h1, h2, h3, .qno, th, .toolbar { font-family: "BIZ UDPGothic", "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif; }
+.toolbar { position: sticky; top: 0; z-index: 5; background: #0b4a56; color: #fff; padding: 10px 16px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.toolbar button { font: inherit; font-weight: 700; border: 0; border-radius: 8px; padding: 6px 14px; background: #fff; color: #0b4a56; cursor: pointer; }
+.toolbar span { font-size: 13px; opacity: .9; }
+.sheet { background: #fff; width: 210mm; min-height: 297mm; margin: 16px auto; padding: 14mm 15mm; box-shadow: 0 2px 10px rgba(0,0,0,.15); }
+.sheet + .sheet { page-break-before: always; break-before: page; }
+.head { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #111; padding-bottom: 6px; margin-bottom: 10px; gap: 10px; }
+h1 { font-size: 16pt; margin: 0; }
+h2 { break-after: avoid; page-break-after: avoid; font-size: 11.5pt; margin: 10px 0 5px; padding: 2px 8px; background: #eef3f3; border-left: 5px solid #0b4a56; }
+.meta { font-size: 9.5pt; text-align: right; }
+.namebox { display: grid; grid-template-columns: 1.2fr .8fr 2.4fr 1fr; border: 1.5px solid #111; margin: 8px 0 10px; }
+.namebox div { border-right: 1px solid #111; padding: 4px 8px; min-height: 12mm; font-size: 9pt; }
+.namebox div:last-child { border-right: 0; }
+.q { margin: 0 0 6px; page-break-inside: avoid; break-inside: avoid; }
+.qno { font-weight: 800; margin-right: 4px; }
+.pt { font-size: 9pt; color: #444; }
+.ch { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; margin: 2px 0 0 1.6em; }
+.ch.one { grid-template-columns: 1fr; }
+.ch.four { grid-template-columns: repeat(4, auto); justify-content: start; gap: 0 28px; }
+.fig { font-family: "BIZ UDPGothic", sans-serif; border: 1px solid #888; padding: 6px 10px; margin: 4px 0 4px 1.6em; display: inline-block; }
+table.tb { border-collapse: collapse; margin: 4px 0 4px 1.6em; font-size: 9.5pt; }
+table.tb th, table.tb td { border: 1px solid #333; padding: 2px 8px; }
+.ans { width: 100%; border-collapse: collapse; }
+.ans th, .ans td { border: 1.2px solid #111; padding: 4px 6px; vertical-align: top; }
+.ans th { width: 14mm; white-space: nowrap; background: #f2f5f5; }
+.ans td.box { height: 11mm; }
+.ans td.big { height: 52mm; }
+.ans .lab { font-size: 8.5pt; color: #444; }
+.ans .grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+.ans .grid div { border-right: 1px solid #111; min-height: 12mm; padding: 2px 4px; font-size: 9pt; }
+.ans .grid div:last-child { border-right: 0; }
+.score { float: right; border: 2px solid #111; width: 32mm; height: 16mm; margin-top: -2px; font-size: 9pt; padding: 2px 6px; }
+.key td, .key th { font-size: 9.5pt; }
+.key .a { font-weight: 800; color: #b00020; white-space: nowrap; font-family: "BIZ UDPGothic", sans-serif; }
+.room { font-size: 8.5pt; color: #0b4a56; white-space: nowrap; }
+.rubric { margin: 4px 0 8px 1em; }
+.rubric li { margin: 2px 0; }
+.note { font-size: 9pt; color: #333; }
+@media print {
+  body { background: #fff; }
+  .toolbar { display: none; }
+  .sheet { margin: 0; box-shadow: none; width: auto; min-height: 0; padding: 0; }
+  body[data-only="q"] .sheet:not(.s-q),
+  body[data-only="a"] .sheet:not(.s-a),
+  body[data-only="k"] .sheet:not(.s-k) { display: none; }
+  body[data-only] .sheet { page-break-before: auto; break-before: auto; }
+}
+@media screen and (max-width: 820px) {
+  .sheet { width: auto; min-height: 0; margin: 8px; padding: 16px; }
+  .ch { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <strong>高分子 確認小テスト（20問・100点）</strong>
+  <button onclick="printOnly('q')">問題用紙を印刷</button>
+  <button onclick="printOnly('a')">解答用紙を印刷</button>
+  <button onclick="printOnly('k')">解答・採点基準を印刷</button>
+  <button onclick="printOnly('')">すべて印刷</button>
+  <span>A4 縦。印刷画面で「余白：デフォルト」「背景のグラフィック：オン」をおすすめします。</span>
+</div>
+
+<!-- ===================== 問題用紙 1 ===================== -->
+<section class="sheet s-q">
+  <div class="head">
+    <h1>生物　確認小テスト「生物をつくる高分子」</h1>
+    <div class="meta">制限時間 25分　／　100点<br>解答はすべて解答用紙に書くこと</div>
+  </div>
+
+  <h2>Ⅰ　選択問題（各4点）　最も適当なものを ア〜エ から1つ選べ。</h2>
+
+  <div class="q"><span class="qno">問1</span>次の物質のうち、構成する元素に窒素（N）を<b>含まない</b>ものはどれか。
+    <div class="ch four"><span>ア　ペプシン</span><span>イ　DNA</span><span>ウ　グリコーゲン</span><span>エ　ヘモグロビン</span></div></div>
+
+  <div class="q"><span class="qno">問2</span>高分子と、それを構成する単量体の組み合わせとして<b>誤っている</b>ものはどれか。
+    <div class="ch"><span>ア　デンプン ― グルコース</span><span>イ　セルロース ― グルコース</span><span>ウ　タンパク質 ― アミノ酸</span><span>エ　DNA ― アミノ酸</span></div></div>
+
+  <div class="q"><span class="qno">問3</span>次の反応式について述べた文として正しいものはどれか。<br>
+    <span class="fig">A–OH　＋　HO–B　→　A–O–B　＋　H₂O</span>
+    <div class="ch one">
+      <span>ア　この反応は加水分解とよばれる。</span>
+      <span>イ　消化酵素による消化は、この反応と逆向きの反応である。</span>
+      <span>ウ　この反応では二酸化炭素が生じる。</span>
+      <span>エ　DNAの2本鎖で向かい合う塩基どうしの結合も、この反応でできる。</span></div></div>
+
+  <div class="q"><span class="qno">問4</span>牛乳を飲むとおなかの調子が悪くなる人は、牛乳に含まれる二糖（乳糖）を分解するはたらきが弱い。この二糖を構成する2つの単糖の組み合わせはどれか。
+    <div class="ch"><span>ア　グルコースとガラクトース</span><span>イ　グルコースとグルコース</span><span>ウ　グルコースとフルクトース</span><span>エ　フルクトースとガラクトース</span></div></div>
+
+  <div class="q"><span class="qno">問5</span>あるタンパク質で、アミノ酸が1か所だけ別のアミノ酸に置きかわった。このとき<b>直接</b>変化したのは、タンパク質の何次構造か。
+    <div class="ch four"><span>ア　一次構造</span><span>イ　二次構造</span><span>ウ　三次構造</span><span>エ　四次構造</span></div></div>
+
+  <div class="q"><span class="qno">問6</span>生卵をゆでると、透明だった卵白が白く固まり、冷ましても元にもどらない。この説明として最も適当なものはどれか。
+    <div class="ch one">
+      <span>ア　熱によってペプチド結合がすべて切れ、アミノ酸にもどったから。</span>
+      <span>イ　熱によってタンパク質が脂肪に変化したから。</span>
+      <span>ウ　熱によってタンパク質が加水分解されたから。</span>
+      <span>エ　熱によってタンパク質の立体構造が変化した（変性した）から。</span></div></div>
+
+  <div class="q"><span class="qno">問7</span>タンパク質の二次構造の例と、それを保っている主な結合の組み合わせとして正しいものはどれか。
+    <div class="ch"><span>ア　αヘリックス ― ペプチド結合</span><span>イ　αヘリックス ― 水素結合</span><span>ウ　二重らせん ― S−S結合</span><span>エ　βシート ― エステル結合</span></div></div>
+
+  <div class="q"><span class="qno">問8</span>脂肪（中性脂肪）について述べた文として<b>誤っている</b>ものはどれか。
+    <div class="ch one">
+      <span>ア　グリセリンと脂肪酸からできている。</span>
+      <span>イ　グリセリンと脂肪酸はエステル結合でつながっている。</span>
+      <span>ウ　デンプンと同じように、単量体が多数つながった高分子である。</span>
+      <span>エ　1gあたりに取り出せるエネルギーが大きく、貯蔵物質に適している。</span></div></div>
+
+  <div class="q"><span class="qno">問9</span>ある核酸の塩基を調べると、ウラシルが含まれ、チミンは含まれていなかった。この核酸に含まれる糖はどれか。
+    <div class="ch four"><span>ア　デオキシリボース</span><span>イ　グルコース</span><span>ウ　ガラクトース</span><span>エ　リボース</span></div></div>
+
+  <div class="q"><span class="qno">問10</span>ある生物の二本鎖DNAでは、シトシン（C）が全塩基の18%を占めていた。アデニン（A）は全塩基の何%か。
+    <div class="ch four"><span>ア　18%</span><span>イ　32%</span><span>ウ　36%</span><span>エ　64%</span></div></div>
+  <div class="q"><span class="qno">問11</span>試験管A〜Cにデンプン溶液を入れ、次の液を加えて37℃で20分間保った。その後ヨウ素液を加えたとき、<b>青紫色にならない</b>のはどれか。
+    <table class="tb"><tr><th>試験管</th><th>加えた液</th></tr>
+      <tr><td>A</td><td>だ液</td></tr>
+      <tr><td>B</td><td>一度沸騰させてから37℃に冷ましただ液</td></tr>
+      <tr><td>C</td><td>水</td></tr></table>
+    <div class="ch four"><span>ア　Aのみ</span><span>イ　Bのみ</span><span>ウ　AとB</span><span>エ　A・B・Cすべて</span></div></div>
+
+  <div class="q"><span class="qno">問12</span>タンパク質を分解する2つの消化酵素について、含まれる消化液と最適pHの組み合わせとして正しいものはどれか。
+    <div class="ch one">
+      <span>ア　ペプシン：胃液・pH8付近　　トリプシン：すい液・pH2付近</span>
+      <span>イ　ペプシン：すい液・pH2付近　　トリプシン：胃液・pH8付近</span>
+      <span>ウ　ペプシン：胃液・pH2付近　　トリプシン：すい液・pH8付近</span>
+      <span>エ　ペプシン：だ液・pH7付近　　トリプシン：胃液・pH2付近</span></div></div>
+
+  <div class="q"><span class="qno">問13</span>小腸の柔毛で吸収された物質と、その物質が入る管の組み合わせとして正しいものはどれか。
+    <div class="ch one">
+      <span>ア　グルコース → リンパ管　　アミノ酸 → 毛細血管　　脂肪の分解産物 → 毛細血管</span>
+      <span>イ　グルコース・アミノ酸・脂肪の分解産物 → すべてリンパ管</span>
+      <span>ウ　グルコース・脂肪の分解産物 → 毛細血管　　アミノ酸 → リンパ管</span>
+      <span>エ　グルコース・アミノ酸 → 毛細血管　　脂肪の分解産物（柔毛内で再び脂肪になる）→ リンパ管</span></div></div>
+
+  <div class="q"><span class="qno">問14</span>ATPとADPのちがいについて正しく述べたものはどれか。
+    <div class="ch one">
+      <span>ア　ADPは、ATPより多くのエネルギーを蓄えている。</span>
+      <span>イ　ADPは、ATPよりリン酸が1つ少ない。</span>
+      <span>ウ　ADPの糖はデオキシリボースである。</span>
+      <span>エ　ADPには塩基（アデニン）が含まれない。</span></div></div>
+
+  <h2>Ⅱ　語句・数値の問題（各6点）</h2>
+
+  <div class="q"><span class="qno">問15</span>アミノ酸どうしの結合について、次の(1)(2)に答えよ。<span class="pt">（各3点）</span><br>
+    (1) アミノ酸どうしの結合の名称を答えよ。<br>
+    (2) アミノ酸50個が一列につながったポリペプチドが1本できるとき、水は何分子取れるか。</div>
+
+  <div class="q"><span class="qno">問16</span>DNAの鋳型鎖の塩基配列が「<b class="gothic">TTACGG</b>」であるとき、これを写し取ってできるRNAの塩基配列を答えよ。<span class="pt">（6点）</span></div>
+
+  <div class="q"><span class="qno">問17</span>胆汁について、次の(1)(2)に答えよ。<span class="pt">（各3点）</span><br>
+    (1) 胆汁がつくられる器官の名称を答えよ。<br>
+    (2) 胆汁は消化酵素を含まないが、脂肪を細かい粒にして消化を助ける。このはたらきを何というか。</div>
+
+  <div class="q"><span class="qno">問18</span>余分なアミノ酸を呼吸に使うと、アミノ基から有害な物質（ X ）が生じる。X は肝臓で毒性の低い物質（ Y ）に変えられ、腎臓から排出される。X・Y にあてはまる物質名を答えよ。<span class="pt">（各3点）</span></div>
+
+  <h2>Ⅲ　説明の問題（各10点）</h2>
+
+  <div class="q"><span class="qno">問19</span>タンパク質には、酵素・抗体・ヘモグロビン・コラーゲンなど、はたらきの異なるものがきわめて多くの種類ある。その理由を、次の3つの語句をすべて用いて説明せよ。<br>
+    <span class="fig">アミノ酸　／　並び順　／　立体構造</span></div>
+
+  <div class="q"><span class="qno">問20</span>ごはんに含まれるデンプンは、どのような物質に変化して、小腸のどこから吸収されるか。口から吸収までの流れを、次の4つの語句をすべて用いて、順を追って説明せよ。<br>
+    <span class="fig">アミラーゼ　／　マルトース　／　マルターゼ　／　毛細血管</span></div>
+</section>
+
+<!-- ===================== 解答用紙 ===================== -->
+<section class="sheet s-a">
+  <div class="head">
+    <h1>確認小テスト「生物をつくる高分子」　解答用紙</h1>
+    <div class="score">得点<br><span style="font-size:14pt;float:right;margin-top:-4px">／100</span></div>
+  </div>
+  <div class="namebox"><div>クラス</div><div>番号</div><div>氏名</div><div>実施日<br>　　月　　日</div></div>
+
+  <p class="gothic" style="margin:6px 0 4px;font-weight:700">Ⅰ　選択問題（各4点）</p>
+  <table class="ans">
+    <tr><td style="padding:0"><div class="grid">
+      <div><span class="lab">問1</span></div><div><span class="lab">問2</span></div><div><span class="lab">問3</span></div><div><span class="lab">問4</span></div><div><span class="lab">問5</span></div><div><span class="lab">問6</span></div><div><span class="lab">問7</span></div>
+    </div></td></tr>
+    <tr><td style="padding:0"><div class="grid">
+      <div><span class="lab">問8</span></div><div><span class="lab">問9</span></div><div><span class="lab">問10</span></div><div><span class="lab">問11</span></div><div><span class="lab">問12</span></div><div><span class="lab">問13</span></div><div><span class="lab">問14</span></div>
+    </div></td></tr>
+  </table>
+
+  <p class="gothic" style="margin:12px 0 4px;font-weight:700">Ⅱ　語句・数値の問題（各6点）</p>
+  <table class="ans">
+    <tr><th>問15</th><td class="box"><span class="lab">(1)</span></td><td class="box"><span class="lab">(2)</span>　　　　　　　　　　分子</td></tr>
+    <tr><th>問16</th><td class="box" colspan="2"><span class="lab">RNAの塩基配列</span></td></tr>
+    <tr><th>問17</th><td class="box"><span class="lab">(1)</span></td><td class="box"><span class="lab">(2)</span></td></tr>
+    <tr><th>問18</th><td class="box"><span class="lab">X</span></td><td class="box"><span class="lab">Y</span></td></tr>
+  </table>
+
+  <p class="gothic" style="margin:12px 0 4px;font-weight:700">Ⅲ　説明の問題（各10点）　※指定の語句には下線を引くこと</p>
+  <table class="ans">
+    <tr><th>問19</th><td class="big"></td></tr>
+    <tr><th>問20</th><td class="big"></td></tr>
+  </table>
+  <p class="note" style="margin-top:8px">小計　Ⅰ（　　　／56）　Ⅱ（　　　／24）　Ⅲ（　　　／20）</p>
+</section>
+
+<!-- ===================== 解答・採点基準 ===================== -->
+<section class="sheet s-k">
+  <div class="head">
+    <h1>解答・解説・採点基準（教員用）</h1>
+    <div class="meta">Ⅰ 4点×14／Ⅱ 6点×4／Ⅲ 10点×2</div>
+  </div>
+  <p class="note" style="margin:0 0 6px">「対応」欄は、内容を扱った「高分子ラボ」の部屋です。正答率の低い問題は、その部屋での復習を指示できます。</p>
+  <table class="ans key">
+    <tr><th>問</th><th style="width:auto">正解</th><th style="width:auto">解説</th><th style="width:auto">対応</th></tr>
+    <tr><th>1</th><td class="a">ウ</td><td>グリコーゲンは糖類（C・H・O）。ペプシン・ヘモグロビンはタンパク質（Nを含む）、DNAは核酸（N・Pを含む）。</td><td class="room">試験Lv1</td></tr>
+    <tr><th>2</th><td class="a">エ</td><td>DNA（核酸）の単量体はヌクレオチド。デンプンもセルロースもグルコースからなる。</td><td class="room">分類5</td></tr>
+    <tr><th>3</th><td class="a">イ</td><td>式は脱水縮合。消化はその逆の加水分解。DNAの塩基どうしは水素結合で、水は取れない（ア・ウ・エは誤り）。</td><td class="room">合成8・図鑑</td></tr>
+    <tr><th>4</th><td class="a">ア</td><td>乳糖（ラクトース）＝グルコース＋ガラクトース。</td><td class="room">合成3</td></tr>
+    <tr><th>5</th><td class="a">ア</td><td>一次構造＝アミノ酸の配列順序。置きかわりで直接変わるのは一次構造（その結果、立体構造やはたらきが変わることがある）。</td><td class="room">分類2</td></tr>
+    <tr><th>6</th><td class="a">エ</td><td>熱で立体構造が変わる＝変性。ペプチド結合（一次構造）はふつう切れない。</td><td class="room">試験Lv2</td></tr>
+    <tr><th>7</th><td class="a">イ</td><td>αヘリックス・βシートは二次構造で、主に水素結合で保たれる。</td><td class="room">分類2</td></tr>
+    <tr><th>8</th><td class="a">ウ</td><td>脂肪はグリセリン1＋脂肪酸3の分子で、高分子ではない。</td><td class="room">合成6</td></tr>
+    <tr><th>9</th><td class="a">エ</td><td>ウラシルを含みチミンを含まない → RNA → 糖はリボース。</td><td class="room">分類3</td></tr>
+    <tr><th>10</th><td class="a">イ</td><td>G＝C＝18%（計36%）。残り64%をAとTで等分してA＝32%。</td><td class="room">試験Lv4</td></tr>
+    <tr><th>11</th><td class="a">ア</td><td>Aはアミラーゼでデンプンが分解される。Bは酵素が熱で失活、Cは酵素がないため、デンプンが残り青紫色になる。</td><td class="room">試験Lv4</td></tr>
+    <tr><th>12</th><td class="a">ウ</td><td>ペプシンは胃液・最適pH2付近、トリプシンはすい液・最適pH8付近。</td><td class="room">消化2・図鑑</td></tr>
+    <tr><th>13</th><td class="a">エ</td><td>グルコース・アミノ酸は毛細血管→門脈→肝臓。脂肪酸とモノグリセリドは柔毛内で脂肪にもどりリンパ管へ。</td><td class="room">消化1〜3</td></tr>
+    <tr><th>14</th><td class="a">イ</td><td>ATP（リン酸3つ）→ ADP（リン酸2つ）＋リン酸のとき、エネルギーを放出する。</td><td class="room">合成10</td></tr>
+    <tr><th>15</th><td class="a">(1) ペプチド結合<br>(2) 49分子</td><td>n個のアミノ酸を一列につなぐと結合は(n−1)か所で、水も(n−1)分子取れる。</td><td class="room">合成5</td></tr>
+    <tr><th>16</th><td class="a">AAUGCC</td><td>T→A、A→U、C→G、G→C。TをUと書いたもの（例：AATGCC）は誤り。</td><td class="room">合成9</td></tr>
+    <tr><th>17</th><td class="a">(1) 肝臓<br>(2) 乳化</td><td>胆汁は肝臓でつくられ、胆のうに蓄えられる。(1)を「胆のう」と答えたものは誤り。</td><td class="room">消化3</td></tr>
+    <tr><th>18</th><td class="a">X アンモニア<br>Y 尿素</td><td>肝臓でアンモニアは尿素に変えられる。</td><td class="room">消化2</td></tr>
+  </table>
+
+  <h3 class="gothic" style="margin:12px 0 4px">問19（10点）</h3>
+  <p style="margin:0"><b>解答例：</b>タンパク質は20種類のアミノ酸がつながってできており、<u>アミノ酸</u>の種類・数・<u>並び順</u>の組み合わせがきわめて多い。並び順がちがうと折りたたまれ方が変わり、それぞれ異なる<u>立体構造</u>になる。立体構造がはたらきを決めるので、はたらきの異なる多くの種類のタンパク質ができる。</p>
+  <ol class="rubric">
+    <li>20種類のアミノ酸がつながっていることに触れている …… 2点</li>
+    <li>アミノ酸の並び順（数・種類）の組み合わせが多様であることを述べている …… 3点</li>
+    <li>並び順のちがいによって立体構造がちがってくることを述べている …… 3点</li>
+    <li>立体構造がはたらきを決める（はたらきが異なる）ことにつなげている …… 2点</li>
+  </ol>
+  <p class="note" style="margin:0 0 6px">指定語句を使っていないものは、1語につき2点減点（0点未満にはしない）。</p>
+
+  <h3 class="gothic" style="margin:8px 0 4px">問20（10点）</h3>
+  <p style="margin:0"><b>解答例：</b>口ではだ液の<u>アミラーゼ</u>がデンプンを分解して<u>マルトース</u>にする（残りのデンプンも、小腸ですい液のアミラーゼによってマルトースになる）。マルトースは小腸の壁にある<u>マルターゼ</u>でグルコースに分解される。グルコースは小腸の柔毛の<u>毛細血管</u>に吸収され、門脈を通って肝臓へ運ばれる。</p>
+  <ol class="rubric">
+    <li>アミラーゼがデンプンをマルトースに分解する（口またはだ液と結びつけている） …… 3点</li>
+    <li>マルターゼがマルトースをグルコースに分解する …… 3点</li>
+    <li>最終的にグルコースになることを明記している …… 2点</li>
+    <li>柔毛の毛細血管から吸収されることを述べている …… 2点</li>
+  </ol>
+  <p class="note" style="margin:0">順序が逆になっているもの（例：マルターゼ→アミラーゼ）は、該当する項目を0点とする。「すい液のアミラーゼ」「門脈・肝臓」への言及は加点しないが、あれば評価のコメントで認める。</p>
+</section>
+
+<script>
+function printOnly(k) {
+  if (k) document.body.dataset.only = k; else delete document.body.dataset.only;
+  window.print();
+}
+window.addEventListener('afterprint', () => delete document.body.dataset.only);
+</script>
+</body>
+</html>

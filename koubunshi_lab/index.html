@@ -1,0 +1,1746 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>高分子ラボ</title>
+<script>
+/* =====================================================================
+   高分子ラボ ― 問題データ
+   ---------------------------------------------------------------------
+   このブロック（「問題データ ここまで」まで）を書き換えると、
+   問題の追加・修正ができます。
+
+   書き方の注意
+   ・文字列は ' ' で囲みます。文字列の中で ' を使うときは \' と書きます。
+   ・各項目の最後の「,」を消さないようにしてください。
+   ・選択肢は「最初に書いたものが正解」です（画面では自動でシャッフル）。
+     ただし選択肢が '○' と '×' の2つだけのときは、○→×の順に固定表示します。
+   ・id は重複しないようにしてください（学習記録の集計に使います）。
+   ・修正したら、ブラウザで開き直して動作を確認してください。
+   ===================================================================== */
+
+// ---- 研究員昇格試験（クイズ）のレベル ----
+const QUIZ_LEVELS = [
+  { lv: 1, name: '初級試験', theme: '4大高分子の基本' },
+  { lv: 2, name: '中級試験', theme: 'タンパク質と核酸の構造' },
+  { lv: 3, name: '上級試験', theme: '消化と代謝' },
+  { lv: 4, name: '博士試験', theme: '総合チャレンジ' },
+];
+const QUIZ_PER_PLAY = 10; // 1回の試験で出題する問題数
+
+// ---- クイズ問題 ----
+// lv: レベル  q: 問題文  c: 選択肢（先頭が正解）  ex: 解説
+const QUIZ = [
+  // ===== Lv1 4大高分子の基本 =====
+  { id: 'q101', lv: 1, q: '動物の細胞を構成する物質のうち、水の次に多いのはどれ？', c: ['タンパク質', '脂質', '炭水化物', '核酸'], ex: '動物細胞では水がもっとも多く（約70%）、次に多いのがタンパク質（約15%）です。' },
+  { id: 'q102', lv: 1, q: 'デンプンを構成する単量体（くり返しの単位）はどれ？', c: ['グルコース', 'フルクトース', 'アミノ酸', 'ヌクレオチド'], ex: 'デンプンはグルコース（ブドウ糖）が多数つながった多糖です。' },
+  { id: 'q103', lv: 1, q: 'タンパク質を構成する単量体はどれ？', c: ['アミノ酸', 'グルコース', 'ヌクレオチド', '脂肪酸'], ex: 'タンパク質はアミノ酸が多数つながった高分子です。' },
+  { id: 'q104', lv: 1, q: '核酸（DNA・RNA）を構成する単量体はどれ？', c: ['ヌクレオチド', 'アミノ酸', 'グルコース', 'グリセリン'], ex: '核酸はヌクレオチドが多数つながった高分子です。' },
+  { id: 'q105', lv: 1, q: '脂肪（中性脂肪）は何と何からできている？', c: ['グリセリンと脂肪酸', 'グルコースとフルクトース', 'アミノ酸とリン酸', '塩基とリボース'], ex: '脂肪はグリセリン1分子に脂肪酸3分子が結合したものです。' },
+  { id: 'q106', lv: 1, q: 'タンパク質をつくるアミノ酸は何種類？', c: ['20種類', '4種類', '64種類', '100種類以上'], ex: 'タンパク質は20種類のアミノ酸の組み合わせでできています。' },
+  { id: 'q107', lv: 1, q: '小さな分子どうしが、水が取れて結合する反応を何という？', c: ['脱水縮合', '加水分解', '光合成', '中和'], ex: '一方の –OH ともう一方の –H から H₂O が取れて結合する反応を脱水縮合といいます。' },
+  { id: 'q108', lv: 1, q: '高分子に水が加わり、小さな分子に分かれる反応を何という？', c: ['加水分解', '脱水縮合', '発酵', '転写'], ex: '脱水縮合の逆向きの反応です。消化は加水分解の反応です。' },
+  { id: 'q109', lv: 1, q: 'アミノ酸どうしの結合を何という？', c: ['ペプチド結合', 'グリコシド結合', 'エステル結合', '水素結合'], ex: 'アミノ酸の –COOH と、別のアミノ酸の –NH₂ から水が取れてできる結合です。' },
+  { id: 'q110', lv: 1, q: '糖どうしの結合を何という？', c: ['グリコシド結合', 'ペプチド結合', 'エステル結合', 'S−S結合'], ex: '糖の –OH どうしから水が取れて、–O– でつながる結合です。' },
+  { id: 'q111', lv: 1, q: 'マルトース（麦芽糖）は、何が結合した二糖？', c: ['グルコース＋グルコース', 'グルコース＋フルクトース', 'グルコース＋ガラクトース', 'フルクトース＋フルクトース'], ex: 'マルトースはグルコース2分子が結合した二糖です。デンプンを分解するとできます。' },
+  { id: 'q112', lv: 1, q: 'スクロース（ショ糖・砂糖の主成分）は、何が結合した二糖？', c: ['グルコース＋フルクトース', 'グルコース＋グルコース', 'グルコース＋ガラクトース', 'ガラクトース＋フルクトース'], ex: 'スクロースはグルコースとフルクトース（果糖）が結合した二糖です。' },
+  { id: 'q113', lv: 1, q: '植物の細胞壁の主成分となる多糖はどれ？', c: ['セルロース', 'グリコーゲン', 'デンプン', 'スクロース'], ex: 'セルロースはグルコースが多数つながった多糖で、植物の細胞壁の主成分です。' },
+  { id: 'q114', lv: 1, q: '動物の肝臓や筋肉に蓄えられる多糖はどれ？', c: ['グリコーゲン', 'セルロース', 'デンプン', 'マルトース'], ex: 'グリコーゲンはグルコースが多数つながった多糖で、動物の貯蔵物質です。' },
+  { id: 'q115', lv: 1, q: 'タンパク質に必ず含まれ、糖類には含まれない元素はどれ？', c: ['窒素（N）', '炭素（C）', '水素（H）', '酸素（O）'], ex: '糖類はC・H・Oからなります。タンパク質はC・H・O・Nを含み、Sを含むものもあります。' },
+  { id: 'q116', lv: 1, q: '核酸に含まれ、デンプンには含まれない元素の組み合わせはどれ？', c: ['窒素（N）とリン（P）', '炭素（C）と酸素（O）', '水素（H）と酸素（O）', '鉄（Fe）と硫黄（S）'], ex: '核酸はC・H・O・N・Pからなります。リンはヌクレオチドのリン酸に含まれます。' },
+  { id: 'q117', lv: 1, q: '【○×】脂肪は、単量体が多数つながった高分子である。', c: ['×', '○'], ex: '脂肪はグリセリン1分子と脂肪酸3分子が結合した分子で、デンプンやタンパク質のような高分子ではありません。' },
+  { id: 'q118', lv: 1, q: '細胞膜の基本構造（二重の層）をつくる脂質はどれ？', c: ['リン脂質', '脂肪', 'グリコーゲン', 'セルロース'], ex: '細胞膜はリン脂質が二重に並んだ層が基本となり、そこにタンパク質がうめこまれています。' },
+  { id: 'q119', lv: 1, q: '【○×】デンプン・タンパク質・核酸は、どれも単量体が多数つながった高分子である。', c: ['○', '×'], ex: 'どれも単量体（グルコース・アミノ酸・ヌクレオチド）が脱水縮合で多数つながった高分子です。' },
+
+  // ===== Lv2 タンパク質と核酸の構造 =====
+  { id: 'q201', lv: 2, q: 'タンパク質の「一次構造」とは何のこと？', c: ['アミノ酸の配列順序', 'らせん状やシート状の部分的な立体構造', 'ポリペプチド全体の立体構造', '複数のポリペプチドの集まり'], ex: '一次構造はアミノ酸の並び順です。これが立体構造（二次〜四次構造）を決めます。' },
+  { id: 'q202', lv: 2, q: 'αヘリックスやβシートは、タンパク質の何次構造？', c: ['二次構造', '一次構造', '三次構造', '四次構造'], ex: 'ポリペプチドの部分的ならせん（αヘリックス）やジグザグのシート（βシート）は二次構造です。' },
+  { id: 'q203', lv: 2, q: 'αヘリックスなどの二次構造を保っている主な結合はどれ？', c: ['水素結合', 'ペプチド結合', 'エステル結合', 'グリコシド結合'], ex: 'ペプチド結合の部分どうしの間にできる水素結合で、らせんやシートの形が保たれます。' },
+  { id: 'q204', lv: 2, q: 'システインどうしの間にでき、三次構造を安定させる結合はどれ？', c: ['S−S結合（ジスルフィド結合）', 'ペプチド結合', 'グリコシド結合', 'エステル結合'], ex: 'システインは硫黄（S）を含むアミノ酸で、2つのシステインの間にS−S結合ができます。' },
+  { id: 'q205', lv: 2, q: 'ヘモグロビンのように、複数のポリペプチド（サブユニット）が集まってできる構造は？', c: ['四次構造', '三次構造', '二次構造', '一次構造'], ex: 'ヘモグロビンは4本のポリペプチド（サブユニット）が集まった四次構造をもちます。' },
+  { id: 'q206', lv: 2, q: '熱や強い酸などでタンパク質の立体構造が変わることを何という？', c: ['変性', '加水分解', '脱水縮合', '複製'], ex: '立体構造が変わることを変性といいます。変性によって酵素がはたらきを失うことを失活といいます。' },
+  { id: 'q207', lv: 2, q: '【○×】変性したタンパク質では、ペプチド結合が切れてアミノ酸がばらばらになっている。', c: ['×', '○'], ex: '変性では主に水素結合などが切れて立体構造が変わります。ペプチド結合（一次構造）はふつう切れていません。' },
+  { id: 'q208', lv: 2, q: 'アミノ酸がペプチド結合でつながるとき、取れる分子はどれ？', c: ['水（H₂O）', '二酸化炭素（CO₂）', 'アンモニア（NH₃）', '酸素（O₂）'], ex: '–COOH の OH と –NH₂ の H から水が取れて –CO–NH– ができます（脱水縮合）。' },
+  { id: 'q209', lv: 2, q: 'アミノ酸10個が一列にペプチド結合でつながると、水は何分子取れる？', c: ['9分子', '10分子', '11分子', '20分子'], ex: '結合の数だけ水が取れます。10個を一列につなぐと結合は9か所です。' },
+  { id: 'q210', lv: 2, q: 'ヌクレオチドを構成する3つの成分はどれ？', c: ['リン酸・糖・塩基', 'グリセリン・脂肪酸・リン酸', 'アミノ酸・糖・塩基', 'リン酸・アミノ酸・グルコース'], ex: 'ヌクレオチドはリン酸・糖（五炭糖）・塩基が結合したものです。' },
+  { id: 'q211', lv: 2, q: 'DNAのヌクレオチドに含まれる糖はどれ？', c: ['デオキシリボース', 'リボース', 'グルコース', 'フルクトース'], ex: 'DNAの糖はデオキシリボース、RNAの糖はリボースです。' },
+  { id: 'q212', lv: 2, q: 'RNAにあり、DNAにはない塩基はどれ？', c: ['ウラシル（U）', 'チミン（T）', 'アデニン（A）', 'グアニン（G）'], ex: 'DNAの塩基はA・T・G・C、RNAの塩基はA・U・G・Cです。' },
+  { id: 'q213', lv: 2, q: 'DNAの2本鎖で、アデニン（A）と対になる塩基はどれ？', c: ['チミン（T）', 'グアニン（G）', 'シトシン（C）', 'ウラシル（U）'], ex: 'DNAではAとT、GとCが対になります（相補性）。' },
+  { id: 'q214', lv: 2, q: 'DNAの2本鎖で、グアニン（G）と対になる塩基はどれ？', c: ['シトシン（C）', 'アデニン（A）', 'チミン（T）', 'ウラシル（U）'], ex: 'GとCは3本の水素結合で対になります。' },
+  { id: 'q215', lv: 2, q: 'DNAの2本鎖で、向かい合う塩基どうしをつないでいる結合はどれ？', c: ['水素結合', 'ペプチド結合', 'エステル結合', 'グリコシド結合'], ex: 'A–Tは2本、G–Cは3本の水素結合で結びついています。' },
+  { id: 'q216', lv: 2, q: 'DNAの立体構造はどれ？', c: ['二重らせん構造', '一本鎖', 'αヘリックス', 'βシート'], ex: 'DNAは2本のヌクレオチド鎖が塩基で対をつくり、ねじれた二重らせん構造をしています。' },
+  { id: 'q217', lv: 2, q: 'DNAの一方の鎖の塩基配列が「ATGC」のとき、対になる鎖の塩基配列は？', c: ['TACG', 'ATGC', 'UACG', 'GCAT'], ex: 'A↔T、G↔Cの規則で置きかえると TACG になります。' },
+  { id: 'q218', lv: 2, q: 'DNAの塩基配列「ATGC」を鋳型として写し取ったRNAの塩基配列は？', c: ['UACG', 'TACG', 'AUGC', 'ATGC'], ex: 'RNAではTの代わりにUを使うので、A→U、T→A、G→C、C→G となり UACG です。' },
+  { id: 'q219', lv: 2, q: 'ヌクレオチドどうしは、どの部分の間で結合して長い鎖になる？', c: ['糖とリン酸', '塩基と塩基', '塩基とリン酸', '糖と糖'], ex: '一方の糖ともう一方のリン酸が結合し、「糖–リン酸–糖–リン酸…」の骨格ができます。' },
+
+  // ===== Lv3 消化と代謝 =====
+  { id: 'q301', lv: 3, q: 'デンプンを分解する消化酵素はどれ？', c: ['アミラーゼ', 'ペプシン', 'リパーゼ', 'トリプシン'], ex: 'アミラーゼはだ液やすい液に含まれ、デンプンをマルトースに分解します。' },
+  { id: 'q302', lv: 3, q: '胃液に含まれ、タンパク質を分解する消化酵素はどれ？', c: ['ペプシン', 'アミラーゼ', 'リパーゼ', 'マルターゼ'], ex: 'ペプシンは胃液に含まれ、タンパク質をペプチドに分解します。' },
+  { id: 'q303', lv: 3, q: 'ペプシンがもっともよくはたらくpH（最適pH）はどれくらい？', c: ['pH2付近（強い酸性）', 'pH7付近（中性）', 'pH8付近（弱アルカリ性）', 'pH12付近（強アルカリ性）'], ex: '胃の中は強い酸性で、ペプシンの最適pHは2付近です。' },
+  { id: 'q304', lv: 3, q: 'すい液に含まれ、タンパク質（ペプチド）を分解する消化酵素はどれ？', c: ['トリプシン', 'ペプシン', 'アミラーゼ', 'マルターゼ'], ex: 'トリプシンはすい液に含まれ、最適pHは8付近（弱アルカリ性）です。' },
+  { id: 'q305', lv: 3, q: '脂肪を脂肪酸とモノグリセリドに分解する消化酵素はどれ？', c: ['リパーゼ', 'アミラーゼ', 'ペプシン', 'ペプチダーゼ'], ex: 'リパーゼはすい液に含まれ、脂肪を分解します。' },
+  { id: 'q306', lv: 3, q: '胆汁について正しいものはどれ？', c: ['消化酵素を含まないが、脂肪を細かい粒にして消化を助ける', 'タンパク質を分解する消化酵素を含む', 'すい臓でつくられる', 'デンプンを分解する消化酵素を含む'], ex: '胆汁は肝臓でつくられ胆のうに蓄えられます。消化酵素は含みませんが、脂肪を乳化してリパーゼがはたらきやすくします。' },
+  { id: 'q307', lv: 3, q: 'マルトースをグルコースに分解する消化酵素はどれ？', c: ['マルターゼ', 'アミラーゼ', 'リパーゼ', 'トリプシン'], ex: 'マルターゼは小腸の壁にあり、マルトースを2分子のグルコースに分解します。' },
+  { id: 'q308', lv: 3, q: 'グルコースやアミノ酸が吸収されるのは、小腸の柔毛のどこ？', c: ['毛細血管', 'リンパ管', '胆管', '食道'], ex: 'グルコースとアミノ酸は柔毛の毛細血管に入り、門脈を通って肝臓へ運ばれます。' },
+  { id: 'q309', lv: 3, q: '脂肪酸とモノグリセリドは柔毛で吸収された後、再び脂肪となってどこに入る？', c: ['リンパ管', '毛細血管', '門脈', '胆のう'], ex: '柔毛内で再び脂肪に合成され、リンパ管に入ります。' },
+  { id: 'q310', lv: 3, q: '小腸で吸収した栄養分を肝臓へ運ぶ血管はどれ？', c: ['門脈（肝門脈）', '大動脈', '肺静脈', '腎動脈'], ex: '小腸の毛細血管は集まって門脈となり、肝臓へつながっています。' },
+  { id: 'q311', lv: 3, q: 'ATP（アデノシン三リン酸）を構成するものはどれ？', c: ['アデニン・リボース・リン酸3つ', 'アデニン・デオキシリボース・リン酸2つ', 'グルコース・リン酸3つ', 'アデニン・リボース・リン酸1つ'], ex: 'ATPはアデニン（塩基）とリボース（糖）に、リン酸が3つつながった物質です。' },
+  { id: 'q312', lv: 3, q: 'ATPがエネルギーを放出するとき、何に分かれる？', c: ['ADPとリン酸', 'アデニンとリボース', 'グルコースと水', 'アミノ酸とリン酸'], ex: '末端のリン酸が切り離されて ATP → ADP＋リン酸 となるとき、エネルギーが放出されます。' },
+  { id: 'q313', lv: 3, q: '呼吸に使われる物質（呼吸基質）として主に使われる3つの組み合わせはどれ？', c: ['炭水化物・脂肪・タンパク質', '炭水化物・脂肪・核酸', '水・無機塩類・タンパク質', 'ビタミン・脂肪・核酸'], ex: '呼吸基質には主に炭水化物（グルコースなど）が使われ、脂肪やタンパク質も使われます。' },
+  { id: 'q314', lv: 3, q: 'アミノ酸を呼吸に使うとき、アミノ基が外れて生じる有害な物質はどれ？', c: ['アンモニア', '二酸化炭素', '尿素', 'グリコーゲン'], ex: 'アミノ基（–NH₂）が外れるとアンモニアができます。アンモニアは毒性が強い物質です。' },
+  { id: 'q315', lv: 3, q: 'アンモニアは肝臓で、毒性の低い何という物質に変えられる？', c: ['尿素', 'グルコース', '脂肪酸', 'ATP'], ex: '肝臓でアンモニアは尿素に変えられ、腎臓から尿として排出されます。' },
+  { id: 'q316', lv: 3, q: '酵素の主成分はどれ？', c: ['タンパク質', '脂肪', '炭水化物', '核酸'], ex: '酵素は主にタンパク質でできた生体触媒です。そのため熱や強い酸で変性し、失活することがあります。' },
+  { id: 'q317', lv: 3, q: '【○×】酵素は反応の前後で変化せず、何度もくり返しはたらく。', c: ['○', '×'], ex: '酵素は触媒なので、反応の前後で自身は変化せず、くり返しはたらきます。' },
+  { id: 'q318', lv: 3, q: '酵素が作用する相手の物質を何という？', c: ['基質', '生成物', '補酵素', '単量体'], ex: '酵素が作用する物質を基質といいます。酵素は特定の基質にだけはたらきます（基質特異性）。' },
+  { id: 'q319', lv: 3, q: '脂肪を呼吸に使うとき、まず何に分解される？', c: ['グリセリンと脂肪酸', 'アミノ酸', 'ヌクレオチド', 'グルコースだけ'], ex: '脂肪はグリセリンと脂肪酸に分解され、それぞれ呼吸の反応経路に入ります。' },
+
+  // ===== Lv4 総合チャレンジ =====
+  { id: 'q401', lv: 4, q: 'ある生物のDNAで、アデニン（A）が全塩基の30%だった。グアニン（G）は何%？', c: ['20%', '30%', '40%', '70%'], ex: 'A＝T＝30%なので、残り40%をGとCで等分し、G＝C＝20%です。' },
+  { id: 'q402', lv: 4, q: 'ある生物のDNAで、グアニン（G）が全塩基の22%だった。チミン（T）は何%？', c: ['28%', '22%', '56%', '44%'], ex: 'G＝C＝22%で合計44%。残り56%をAとTで等分し、T＝28%です。' },
+  { id: 'q403', lv: 4, q: 'グルコース100個が一列につながった多糖ができるとき、水は何分子取れる？', c: ['99分子', '100分子', '101分子', '50分子'], ex: 'n個をつなぐと結合は(n−1)か所。100個なら水は99分子取れます。' },
+  { id: 'q404', lv: 4, q: '脂肪1分子ができるとき、水は何分子取れる？', c: ['3分子', '1分子', '2分子', '4分子'], ex: 'グリセリンの3つの –OH に脂肪酸が1つずつエステル結合するので、水は3分子取れます。' },
+  { id: 'q405', lv: 4, q: 'マルトース1分子を加水分解してグルコース2分子にするには、水が何分子必要？', c: ['1分子', '2分子', '0分子', '3分子'], ex: 'グリコシド結合1か所を切るのに水1分子が必要です。' },
+  { id: 'q406', lv: 4, q: 'mRNAの塩基配列が「AUGGCU」のとき、写し取られたもとのDNA（鋳型鎖）の配列は？', c: ['TACCGA', 'UACCGA', 'AUGGCU', 'ATGGCT'], ex: 'RNAのA→DNAのT、U→A、G→C、C→G と対応させると TACCGA です。' },
+  { id: 'q407', lv: 4, q: '「酵素 ― 基質 ― はたらく場所」の組み合わせとして正しいものはどれ？', c: ['ペプシン ― タンパク質 ― 胃', 'トリプシン ― 脂肪 ― 小腸', 'リパーゼ ― デンプン ― 口', 'マルターゼ ― タンパク質 ― 胃'], ex: 'ペプシンは胃でタンパク質を分解します。トリプシンはタンパク質、リパーゼは脂肪、マルターゼはマルトースにはたらきます。' },
+  { id: 'q408', lv: 4, q: 'デンプンとセルロースはどちらもグルコースからできている。性質がちがう主な理由は？', c: ['グルコースどうしの結合のしかた（向き）がちがうから', '構成する元素がちがうから', '一方はアミノ酸を含むから', '一方は脂肪酸を含むから'], ex: 'どちらもグルコースの多糖ですが、グルコースどうしの結合のしかたがちがうため、形や性質が異なります。ヒトはセルロースを分解する酵素をもちません。' },
+  { id: 'q409', lv: 4, q: '沸騰させてから冷ましただ液を、デンプン溶液に加えて35℃に保った。結果は？', c: ['デンプンはほとんど分解されない', 'デンプンはふつうより速く分解される', 'デンプンがタンパク質に変わる', 'デンプンが脂肪に変わる'], ex: 'だ液アミラーゼ（タンパク質）が熱で変性して失活しているので、冷ましてもはたらきません。' },
+  { id: 'q410', lv: 4, q: '次のうち、高分子ではないものはどれ？', c: ['脂肪', 'デンプン', 'タンパク質', 'DNA'], ex: '脂肪はグリセリンと脂肪酸3つが結合した分子で、単量体が多数つながった高分子ではありません。' },
+  { id: 'q411', lv: 4, q: 'RNAと比べたDNAの特徴として正しいものはどれ？', c: ['糖がデオキシリボースで、ふつう二本鎖', '糖がリボースで、ふつう一本鎖', '塩基にウラシルを含む', 'アミノ酸がつながってできている'], ex: 'DNAはデオキシリボース・塩基A,T,G,C・二本鎖、RNAはリボース・塩基A,U,G,C・一本鎖が基本です。' },
+  { id: 'q412', lv: 4, q: 'ペプシンを中性（pH7）の溶液に入れてタンパク質と混ぜた。分解はどうなる？', c: ['ほとんど進まない', '胃の中より速く進む', 'デンプンを分解しはじめる', '脂肪を分解しはじめる'], ex: 'ペプシンの最適pHは2付近です。中性ではほとんどはたらきません。' },
+  { id: 'q413', lv: 4, q: 'タンパク質に非常に多くの種類がある主な理由はどれ？', c: ['アミノ酸の種類・数・並び順の組み合わせが多様だから', '構成する元素が数百種類あるから', 'グルコースのつながり方が多様だから', '脂肪酸の数が多様だから'], ex: '20種類のアミノ酸の数と並び順（一次構造）の組み合わせは膨大で、それぞれが異なる立体構造とはたらきをもちます。' },
+];
+
+// ---- 分類ラボ（仕分け・マッチング） ----
+// type:'bins'  … カードを箱に仕分け。cards は ['カードの文字', 箱の番号(0から)]
+//                draw を書くと、その枚数だけランダムに出題
+// type:'match' … 左右をペアにする。pairs は ['左', '右']
+const SORT_STAGES = [
+  { id: 's1', type: 'bins', title: '4大物質に仕分けよう', draw: 12,
+    bins: ['糖類（炭水化物）', 'タンパク質', '脂質', '核酸'],
+    cards: [
+      ['グルコース', 0], ['スクロース（ショ糖）', 0], ['デンプン', 0], ['グリコーゲン', 0],
+      ['セルロース', 0], ['グリコシド結合', 0], ['マルトース（麦芽糖）', 0], ['ラクトース（乳糖）', 0],
+      ['アミノ酸', 1], ['ペプチド結合', 1], ['ヘモグロビン', 1], ['コラーゲン', 1],
+      ['抗体', 1], ['酵素の主成分', 1], ['20種類の単量体からなる', 1],
+      ['脂肪', 2], ['脂肪酸', 2], ['グリセリン', 2], ['リン脂質', 2],
+      ['エステル結合', 2], ['コレステロール', 2], ['1gあたりのエネルギーが最も大きい', 2],
+      ['ヌクレオチド', 3], ['DNA', 3], ['RNA', 3], ['チミン（T）', 3],
+      ['ウラシル（U）', 3], ['二重らせん構造', 3], ['遺伝情報をになう', 3],
+    ] },
+  { id: 's2', type: 'bins', title: 'タンパク質の構造を見分けよう',
+    bins: ['一次構造', '二次構造', '三次構造', '四次構造'],
+    cards: [
+      ['アミノ酸の配列順序', 0], ['ペプチド結合でつながったアミノ酸の並び', 0],
+      ['αヘリックス（らせん）', 1], ['βシート（ジグザグのシート）', 1], ['水素結合で保たれる部分的な形', 1],
+      ['1本のポリペプチド全体の立体構造', 2], ['S−S結合で安定した折りたたみ', 2],
+      ['複数のポリペプチドの集合', 3], ['ヘモグロビンの4つのサブユニット', 3],
+    ] },
+  { id: 's3', type: 'bins', title: 'DNA？ RNA？ それとも両方？',
+    bins: ['DNAだけ', 'RNAだけ', '両方'],
+    cards: [
+      ['デオキシリボース', 0], ['チミン（T）', 0], ['ふつう二本鎖（二重らせん）', 0], ['遺伝子の本体', 0],
+      ['リボース', 1], ['ウラシル（U）', 1], ['ふつう一本鎖', 1], ['遺伝情報を写し取ってタンパク質合成に使われる', 1],
+      ['アデニン（A）', 2], ['グアニン（G）', 2], ['シトシン（C）', 2], ['リン酸', 2], ['ヌクレオチドが単量体', 2],
+    ] },
+  { id: 's4', type: 'bins', title: '消化酵素がはたらく相手は？',
+    bins: ['糖類（デンプン・マルトース）', 'タンパク質・ペプチド', '脂肪'],
+    cards: [
+      ['だ液アミラーゼ', 0], ['すい液アミラーゼ', 0], ['マルターゼ', 0],
+      ['ペプシン', 1], ['トリプシン', 1], ['ペプチダーゼ', 1],
+      ['リパーゼ', 2], ['胆汁（乳化して消化を助ける）', 2],
+    ] },
+  { id: 's5', type: 'match', title: '高分子と単量体をペアにしよう',
+    pairs: [
+      ['デンプン', 'グルコース'], ['タンパク質', 'アミノ酸'], ['核酸', 'ヌクレオチド'],
+      ['脂肪', 'グリセリン＋脂肪酸'], ['スクロース', 'グルコース＋フルクトース'], ['ラクトース', 'グルコース＋ガラクトース'],
+    ] },
+  { id: 's6', type: 'match', title: '結合の名前をペアにしよう',
+    pairs: [
+      ['アミノ酸どうし', 'ペプチド結合'], ['糖どうし', 'グリコシド結合'], ['グリセリンと脂肪酸', 'エステル結合'],
+      ['DNAの向かい合う塩基どうし', '水素結合'], ['システインどうし', 'S−S結合'], ['ATPのリン酸どうし', '高エネルギーリン酸結合'],
+    ] },
+];
+
+// ---- 合成ルーム（分子組み立てパズル） ----
+// パーツの記号: glc グルコース / fru フルクトース / gal ガラクトース / rib リボース / dR デオキシリボース
+//   aaGly グリシン / aaAla アラニン / aaSer セリン / aaCys システイン / aaLys リシン
+//   glyc グリセリン / fa 脂肪酸 / P リン酸 / bA bT bG bC bU 塩基
+// type: 'chain'（一列につなぐ） 'fat'（グリセリン＋脂肪酸） 'pair'（相補的な塩基を並べる）
+// slots: 完成形のパーツ  ordered: true なら順番どおりに置く  showNames: true なら空き枠に名前を表示
+// palette: 選べるパーツ（まちがいの選択肢も入れる）  quiz: 完成後の確認問題（選択肢の先頭が正解）
+const BUILD_STAGES = [
+  { id: 'b1', group: '糖類', title: 'マルトースをつくろう', type: 'chain', slots: ['glc', 'glc'], showNames: true,
+    goal: 'グルコース2分子を脱水縮合でつなげて、二糖の「マルトース（麦芽糖）」をつくろう。下のパーツをクリックしてね。',
+    palette: ['glc', 'fru', 'gal', 'aaGly'], product: 'マルトース（麦芽糖）',
+    quiz: { q: 'グルコースどうしがつながったとき、取れた小さな分子は？', c: ['水（H₂O）', '二酸化炭素（CO₂）', '酸素（O₂）', 'アンモニア（NH₃）'],
+      ex: '片方の –OH ともう片方の –OH から H₂O が取れて、–O– でつながります（グリコシド結合）。このように水が取れて結合する反応を「脱水縮合」といいます。' } },
+  { id: 'b2', group: '糖類', title: 'スクロースをつくろう', type: 'chain', slots: ['glc', 'fru'],
+    goal: '砂糖の主成分「スクロース（ショ糖）」をつくろう。スクロースは何と何からできているかな？',
+    palette: ['glc', 'fru', 'gal', 'rib'], product: 'スクロース（ショ糖）',
+    quiz: { q: 'スクロースのように、単糖が2つ結合した糖を何という？', c: ['二糖', '単糖', '多糖', '脂肪酸'],
+      ex: '単糖が2つ結合したものを二糖、多数結合したものを多糖といいます。スクロースはグルコース＋フルクトースの二糖です。' } },
+  { id: 'b3', group: '糖類', title: 'ラクトースをつくろう', type: 'chain', slots: ['glc', 'gal'],
+    goal: '牛乳に含まれる「ラクトース（乳糖）」をつくろう。',
+    palette: ['glc', 'fru', 'gal', 'dR'], product: 'ラクトース（乳糖）',
+    quiz: { q: 'ラクトースの中で、グルコースとガラクトースをつないでいる結合は？', c: ['グリコシド結合', 'ペプチド結合', 'エステル結合', '水素結合'],
+      ex: '糖どうしの結合はグリコシド結合です。ラクトースはグルコース＋ガラクトースの二糖です。' } },
+  { id: 'b4', group: '糖類', title: 'デンプンの一部をつくろう', type: 'chain', slots: ['glc', 'glc', 'glc', 'glc', 'glc'],
+    goal: 'デンプンは単糖が多数つながった多糖。デンプンの材料となる単糖を5個つないでみよう。',
+    palette: ['glc', 'fru', 'gal', 'aaAla'], product: 'デンプン（の一部）',
+    quiz: { q: '5個つながるまでに、水は何分子取れた？', c: ['4分子', '5分子', '6分子', '1分子'],
+      ex: '結合の数だけ水が取れます。5個を一列につなぐと結合は4か所なので水は4分子。n個なら(n−1)分子です。' } },
+  { id: 'b5', group: 'タンパク質', title: 'ペプチドをつくろう', type: 'chain', ordered: true, showNames: true,
+    slots: ['aaGly', 'aaAla', 'aaSer', 'aaCys'],
+    goal: '設計図どおりにアミノ酸を並べよう：グリシン → アラニン → セリン → システイン。この「並び順」がタンパク質の一次構造になるよ。',
+    palette: ['aaGly', 'aaAla', 'aaSer', 'aaCys', 'aaLys', 'glc'], product: 'ペプチド（アミノ酸4個）',
+    quiz: { q: 'アミノ酸どうしの結合を何という？', c: ['ペプチド結合', 'グリコシド結合', 'エステル結合', '水素結合'],
+      ex: '一方のアミノ酸の –COOH と、もう一方の –NH₂ から水が取れて –CO–NH– でつながります。これをペプチド結合といいます。' } },
+  { id: 'b6', group: '脂質', title: '脂肪をつくろう', type: 'fat', slots: ['glyc', 'fa', 'fa', 'fa'],
+    goal: '脂肪（中性脂肪）は、グリセリン1分子に脂肪酸3分子が結合したもの。パーツを選んで組み立てよう。',
+    palette: ['glyc', 'fa', 'glc', 'aaGly', 'P'], product: '脂肪（中性脂肪）',
+    quiz: { q: '脂肪が1分子できるまでに、水は何分子取れた？', c: ['3分子', '1分子', '2分子', '4分子'],
+      ex: 'グリセリンの3つの –OH に脂肪酸が1つずつ結合するので水は3分子。この結合をエステル結合といいます。※脂肪は単量体が多数つながった「高分子」ではありません。' } },
+  { id: 'b7', group: '核酸', title: 'ヌクレオチドをつくろう', type: 'chain', ordered: true, slots: ['P', 'dR', 'bA'],
+    goal: 'DNAの単量体「ヌクレオチド」をつくろう。リン酸 → 糖 → 塩基 の順につなげる。今回はアデニンをもつ、DNA用のヌクレオチドだよ。',
+    palette: ['P', 'dR', 'rib', 'bA', 'glc', 'aaGly'], product: 'ヌクレオチド（DNA用）',
+    quiz: { q: 'DNAのヌクレオチドとRNAのヌクレオチドで、ちがうのはどれ？', c: ['糖（DNAはデオキシリボース、RNAはリボース）', 'リン酸の数', '含まれる金属', 'アミノ酸の種類'],
+      ex: 'DNAの糖はデオキシリボース、RNAの糖はリボースです。塩基もちがい、DNAはチミン（T）、RNAはウラシル（U）を使います。' } },
+  { id: 'b8', group: '核酸', title: 'DNAの相補鎖をつくろう', type: 'pair', mode: 'dna',
+    template: ['bA', 'bT', 'bG', 'bC', 'bG', 'bT', 'bA'],
+    goal: 'DNAの2本の鎖は、塩基どうしが決まった相手と対になる（相補性）。上の鎖に合う塩基を、左から順に選ぼう。',
+    palette: ['bA', 'bT', 'bG', 'bC', 'bU'], product: '二本鎖DNA',
+    quiz: { q: '向かい合う塩基どうしをつなぐ結合は？（このとき水は取れない）', c: ['水素結合', 'ペプチド結合', 'エステル結合', 'グリコシド結合'],
+      ex: 'A–Tは2本、G–Cは3本の水素結合で対をつくります。水素結合は脱水縮合ではないので水は取れません。' } },
+  { id: 'b9', group: '核酸', title: 'RNAに写し取ろう（転写）', type: 'pair', mode: 'rna',
+    template: ['bT', 'bA', 'bC', 'bG', 'bG', 'bA', 'bT'],
+    goal: 'DNA（鋳型鎖）の塩基配列を、RNAに写し取ろう。RNAにはチミン（T）がないことに注意！',
+    palette: ['bA', 'bT', 'bG', 'bC', 'bU'], product: 'RNA（mRNA）',
+    quiz: { q: 'DNAのアデニン（A）と対になるRNAの塩基は？', c: ['ウラシル（U）', 'チミン（T）', 'グアニン（G）', 'シトシン（C）'],
+      ex: 'RNAはチミンの代わりにウラシルを使うので、DNAのAにはRNAのUが対になります。' } },
+  { id: 'b10', group: '代謝', title: 'ATPをつくろう', type: 'chain', ordered: true, showNames: true,
+    slots: ['bA', 'rib', 'P', 'P', 'P'],
+    goal: 'エネルギーの通貨「ATP（アデノシン三リン酸）」をつくろう。アデニン → リボース → リン酸 → リン酸 → リン酸 の順。',
+    palette: ['bA', 'bG', 'rib', 'dR', 'P', 'glc'], product: 'ATP（アデノシン三リン酸）',
+    quiz: { q: 'ATPがエネルギーを放出するとき、切れる結合は？', c: ['末端のリン酸どうしの結合（高エネルギーリン酸結合）', 'アデニンとリボースの結合', 'リボースとリン酸の結合', '水素結合'],
+      ex: 'リン酸どうしの結合は高エネルギーリン酸結合とよばれます。末端のリン酸が切り離されて ATP → ADP＋リン酸 となるとき、エネルギーが放出されます。' } },
+];
+
+// ---- 消化管探検ミッション（消化シミュレーション） ----
+// at: 図で光らせる場所 mouth 口 / stomach 胃 / small 小腸 / pancreas すい臓 / gall 肝臓・胆のう
+//     villi 柔毛 / blood 毛細血管 / lymph リンパ管 / liver 肝臓 / cell 全身の細胞
+// after: 正解後の分子のようす（m('名前', パーツ…) の並び。省略すると変化なし）
+// fx: 'hydro' 加水分解 / 'emulsify' 乳化 / 'absorb' 吸収 / 'build' 合成 / 'none'
+const m = (n, ...p) => ({ n, p });
+const rep = (k, id) => Array(k).fill(id);
+const DIGEST_STAGES = [
+  { id: 'd1', title: 'デンプンの旅', food: 'ごはん（デンプン）', icon: '🍚',
+    start: [m('デンプン', ...rep(8, 'glc'))],
+    steps: [
+      { at: ['mouth'], q: 'ごはんを口でよくかむと甘くなる。デンプンにはたらく、だ液の消化酵素は？', c: ['アミラーゼ', 'ペプシン', 'リパーゼ', 'トリプシン'], fx: 'hydro',
+        after: [m('マルトース', 'glc', 'glc'), m('マルトース', 'glc', 'glc'), m('デンプン', ...rep(4, 'glc'))],
+        ex: 'だ液アミラーゼが、デンプンの一部をマルトース（グルコース2個）に分解します。水が加わって分かれる「加水分解」です。' },
+      { at: ['stomach'], q: '胃では、デンプンやマルトースはどうなる？', c: ['ほとんど分解されない', 'ペプシンで分解される', 'リパーゼで分解される', 'すべて吸収される'], fx: 'none',
+        ex: '胃液の消化酵素ペプシンはタンパク質を分解する酵素です。また胃の中は強い酸性なので、だ液アミラーゼもやがてはたらかなくなります。' },
+      { at: ['small', 'pancreas'], q: 'すい臓から小腸（十二指腸）に出される「すい液」の酵素で、残りのデンプンを分解するのは？', c: ['アミラーゼ', 'ペプシン', '胆汁', 'リパーゼ'], fx: 'hydro',
+        after: rep(4, 0).map(() => m('マルトース', 'glc', 'glc')),
+        ex: 'すい液にもアミラーゼが含まれ、残りのデンプンをマルトースに分解します。' },
+      { at: ['small'], q: 'マルトースをグルコースに分解する酵素は？（小腸の壁にある）', c: ['マルターゼ', 'アミラーゼ', 'リパーゼ', 'ペプチダーゼ'], fx: 'hydro',
+        after: rep(8, 0).map(() => m('グルコース', 'glc')),
+        ex: 'マルターゼはマルトースを2分子のグルコースに分解します。これで吸収できる大きさになりました。' },
+      { at: ['villi', 'blood'], q: 'グルコースは小腸の柔毛で、どこへ吸収される？', c: ['毛細血管', 'リンパ管', '胃の壁', '大腸'], fx: 'absorb',
+        ex: 'グルコースは柔毛の毛細血管に入り、門脈を通って肝臓へ運ばれます。' },
+      { at: ['liver'], q: '肝臓では、余ったグルコースを何という多糖にして蓄える？', c: ['グリコーゲン', 'セルロース', 'デンプン', 'スクロース'], fx: 'build',
+        after: [m('グリコーゲン', ...rep(6, 'glc')), m('グルコース', 'glc'), m('グルコース', 'glc')],
+        ex: '肝臓は余ったグルコースをグリコーゲンにして蓄え、血液中のグルコース（血糖）が減るとまた分解して送り出します。' },
+      { at: ['cell'], q: '全身の細胞は、グルコースを呼吸で分解して、エネルギーを何という物質の形で取り出す？', c: ['ATP', 'DNA', 'アミノ酸', '脂肪酸'], fx: 'build',
+        after: [m('ATP', 'bA', 'rib', 'P', 'P', 'P')],
+        ex: '呼吸でグルコースが分解されるとき、そのエネルギーを使ってADPとリン酸からATPが合成されます。ATPは生命活動のエネルギーの通貨です。' },
+    ] },
+  { id: 'd2', title: 'タンパク質の旅', food: '卵白（タンパク質）', icon: '🥚',
+    start: [m('タンパク質', 'aaGly', 'aaAla', 'aaSer', 'aaCys', 'aaLys', 'aaAla', 'aaGly', 'aaSer')],
+    steps: [
+      { at: ['mouth'], q: '口の中で、タンパク質は分解される？', c: ['ほとんど分解されない', 'アミラーゼで分解される', 'リパーゼで分解される', 'すべて吸収される'], fx: 'none',
+        ex: 'だ液の消化酵素はアミラーゼで、デンプンにはたらきます。タンパク質は分解されません（基質特異性）。' },
+      { at: ['stomach'], q: '胃液に含まれ、タンパク質を分解する消化酵素は？', c: ['ペプシン', 'アミラーゼ', 'リパーゼ', 'マルターゼ'], fx: 'hydro',
+        after: [m('ペプチド', 'aaGly', 'aaAla', 'aaSer', 'aaCys'), m('ペプチド', 'aaLys', 'aaAla', 'aaGly', 'aaSer')],
+        ex: 'ペプシンは強い酸性（pH2付近）でよくはたらき、タンパク質をペプチド（アミノ酸がいくつかつながったもの）に分解します。' },
+      { at: ['small', 'pancreas'], q: 'すい液に含まれ、ペプチドをさらに短くする消化酵素は？', c: ['トリプシン', 'ペプシン', 'アミラーゼ', '胆汁'], fx: 'hydro',
+        after: [m('ペプチド', 'aaGly', 'aaAla'), m('ペプチド', 'aaSer', 'aaCys'), m('ペプチド', 'aaLys', 'aaAla'), m('ペプチド', 'aaGly', 'aaSer')],
+        ex: 'トリプシンは弱アルカリ性（pH8付近）でよくはたらきます。すい液は弱アルカリ性で、胃から来た酸を中和します。' },
+      { at: ['small'], q: 'ペプチドを最後にアミノ酸まで分解する酵素は？（小腸の壁にある）', c: ['ペプチダーゼ', 'マルターゼ', 'リパーゼ', 'アミラーゼ'], fx: 'hydro',
+        after: ['aaGly', 'aaAla', 'aaSer', 'aaCys', 'aaLys', 'aaAla', 'aaGly', 'aaSer'].map(a => m('アミノ酸', a)),
+        ex: 'ペプチダーゼがペプチド結合を加水分解し、アミノ酸にします。' },
+      { at: ['villi', 'blood'], q: 'アミノ酸は小腸の柔毛で、どこへ吸収される？', c: ['毛細血管', 'リンパ管', '食道', '胆のう'], fx: 'absorb',
+        ex: 'アミノ酸はグルコースと同じく毛細血管に入り、門脈を通って肝臓へ運ばれます。' },
+      { at: ['liver'], q: '余ったアミノ酸を呼吸に使うとき生じる有害なアンモニアは、肝臓で何に変えられる？', c: ['尿素', 'グルコース', '二酸化炭素', '脂肪酸'], fx: 'none',
+        ex: 'アミノ酸からアミノ基が外れるとアンモニアが生じます。肝臓はこれを毒性の低い尿素に変え、尿素は腎臓から排出されます。' },
+      { at: ['cell'], q: '細胞に届いたアミノ酸は、主に何の材料になる？', c: ['からだのタンパク質（酵素・筋肉など）', 'セルロース', 'デンプン', 'グリコーゲン'], fx: 'build',
+        after: [m('新しいタンパク質', 'aaSer', 'aaGly', 'aaLys', 'aaCys', 'aaAla', 'aaGly', 'aaAla', 'aaSer')],
+        ex: 'アミノ酸は、DNAの遺伝情報にしたがって並べられ、ふたたびペプチド結合でつながって、からだに必要なタンパク質になります。' },
+    ] },
+  { id: 'd3', title: '脂肪の旅', food: 'バター（脂肪）', icon: '🧈',
+    start: [m('脂肪', 'glyc', 'fa', 'fa', 'fa'), m('脂肪', 'glyc', 'fa', 'fa', 'fa')],
+    steps: [
+      { at: ['mouth'], q: '口の中で、脂肪は分解される？', c: ['ほとんど分解されない', 'アミラーゼで分解される', 'ペプシンで分解される', 'すべて吸収される'], fx: 'none',
+        ex: 'だ液のアミラーゼはデンプンにはたらく酵素なので、脂肪は分解されません。' },
+      { at: ['stomach'], q: '胃では、脂肪はどうなる？', c: ['ほとんど分解されない', 'ペプシンで分解される', 'アミラーゼで分解される', 'すべて吸収される'], fx: 'none',
+        ex: '胃液の主な消化酵素ペプシンはタンパク質を分解する酵素です。脂肪は主に小腸で消化されます。' },
+      { at: ['small', 'gall'], q: '肝臓でつくられ胆のうに蓄えられる消化液で、脂肪を細かい粒にして（乳化して）消化を助けるのは？', c: ['胆汁', 'だ液', '胃液', 'すい液'], fx: 'emulsify',
+        ex: '胆汁は消化酵素を含みませんが、脂肪を乳化して、リパーゼがはたらきやすくします。' },
+      { at: ['small', 'pancreas'], q: 'すい液に含まれ、脂肪を分解する消化酵素は？', c: ['リパーゼ', 'トリプシン', 'アミラーゼ', 'ペプシン'], fx: 'hydro',
+        after: [m('モノグリセリド', 'glyc', 'fa'), m('脂肪酸', 'fa'), m('脂肪酸', 'fa'), m('モノグリセリド', 'glyc', 'fa'), m('脂肪酸', 'fa'), m('脂肪酸', 'fa')],
+        ex: 'リパーゼは脂肪を、脂肪酸とモノグリセリド（グリセリンに脂肪酸が1つ結合したもの）に分解します。' },
+      { at: ['villi', 'lymph'], q: '脂肪酸とモノグリセリドは柔毛で吸収された後、再び脂肪となって、どこに入る？', c: ['リンパ管', '毛細血管', '胃', '食道'], fx: 'absorb',
+        after: [m('脂肪', 'glyc', 'fa', 'fa', 'fa'), m('脂肪', 'glyc', 'fa', 'fa', 'fa')],
+        ex: '柔毛の細胞内で再び脂肪に合成され、リンパ管に入ります。その後、静脈に合流して全身へ運ばれます。' },
+      { at: ['cell'], q: '脂肪を呼吸に使うとき、まず何に分解される？', c: ['グリセリンと脂肪酸', 'アミノ酸', 'ヌクレオチド', 'グルコースだけ'], fx: 'hydro',
+        after: [m('グリセリン', 'glyc'), m('脂肪酸', 'fa'), m('脂肪酸', 'fa'), m('脂肪酸', 'fa')],
+        ex: '脂肪はグリセリンと脂肪酸に分解され、それぞれ呼吸の反応経路に入ってATPの合成に使われます。脂肪は1gあたりに取り出せるエネルギーが大きい物質です。' },
+    ] },
+];
+/* ======================== 問題データ ここまで ======================== */
+</script>
+<style>
+:root {
+  --bg: #e9f4f2;
+  --panel: #ffffff;
+  --ink: #15323a;
+  --sub: #4b6870;
+  --line: #cfe2df;
+  --accent: #0d8a8c;
+  --accent-ink: #ffffff;
+  --accent-soft: #d6efee;
+  --hdr: #0b4a56;
+  --coral: #e76f51;
+  --ok: #23924a;
+  --ok-soft: #dcf3e3;
+  --ng: #cf3b3b;
+  --ng-soft: #fbe2e0;
+  --gold: #e9a91b;
+  --shadow: 0 2px 10px rgba(11, 74, 86, .10);
+  --r: 14px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Noto Sans CJK JP", "BIZ UDPGothic", Meiryo, sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 8% 18%, rgba(13,138,140,.10) 0 90px, transparent 91px),
+    radial-gradient(ellipse 140px 70px at 92% 30%, rgba(231,111,81,.08) 0 100%, transparent 100%),
+    radial-gradient(circle at 85% 88%, rgba(233,169,27,.10) 0 120px, transparent 121px),
+    radial-gradient(circle at 20% 92%, rgba(13,138,140,.07) 0 60px, transparent 61px),
+    var(--bg);
+  background-attachment: fixed;
+  min-height: 100vh;
+  line-height: 1.6;
+  font-size: 16px;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+/* ---------- header ---------- */
+#hdr {
+  background: var(--hdr); color: #fff;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 8px 18px; position: sticky; top: 0; z-index: 20;
+  box-shadow: 0 2px 8px rgba(0,0,0,.18);
+}
+#hdr .logo { font-weight: 800; font-size: 20px; letter-spacing: .04em; display: flex; align-items: center; gap: 8px; background: none; border: 0; color: #fff; padding: 4px 0; }
+#hdr .logo .cell { width: 28px; height: 28px; border-radius: 50%; background: radial-gradient(circle at 60% 40%, #f4c55a 0 6px, #2fb6a8 7px 100%); border: 2px solid #bff0ea; }
+#hdr .me { margin-left: auto; display: flex; align-items: center; gap: 12px; font-size: 14px; }
+#hdr .rank { background: var(--gold); color: #3a2a00; font-weight: 700; border-radius: 999px; padding: 2px 12px; }
+#hdr .xpbar { width: 140px; height: 8px; background: rgba(255,255,255,.25); border-radius: 99px; overflow: hidden; }
+#hdr .xpbar i { display: block; height: 100%; background: #9ff0d9; }
+#hdr .hbtn { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.3); border-radius: 10px; padding: 4px 10px; color: #fff; font-size: 14px; }
+#hdr .hbtn:hover { background: rgba(255,255,255,.22); }
+
+main { max-width: 1180px; margin: 0 auto; padding: 18px 16px 60px; }
+h1, h2, h3 { line-height: 1.35; margin: 0 0 8px; }
+.panel { background: var(--panel); border-radius: var(--r); box-shadow: var(--shadow); padding: 18px 20px; border: 1px solid var(--line); }
+.muted { color: var(--sub); }
+.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.grow { flex: 1; }
+.btn { border: 0; border-radius: 12px; padding: 10px 18px; font-weight: 700; background: var(--accent); color: var(--accent-ink); box-shadow: 0 2px 0 rgba(0,0,0,.15); }
+.btn:hover { filter: brightness(1.08); }
+.btn:active { transform: translateY(1px); box-shadow: none; }
+.btn.sub { background: #fff; color: var(--accent); border: 2px solid var(--accent); box-shadow: none; }
+.btn.coral { background: var(--coral); }
+.btn.small { padding: 6px 12px; font-size: 14px; }
+.btn[disabled] { opacity: .45; cursor: default; }
+.back { background: none; border: 0; color: var(--accent); font-weight: 700; padding: 4px 0; }
+.tag { display: inline-block; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 1px 10px; background: var(--accent-soft); color: var(--accent); }
+.stars { color: var(--gold); letter-spacing: 2px; font-size: 18px; white-space: nowrap; }
+.stars .off { color: #cdd8d6; }
+
+/* ---------- home ---------- */
+.hero { display: flex; gap: 20px; align-items: center; margin-bottom: 18px; }
+.hero h1 { font-size: 26px; }
+.rooms { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.room { text-align: left; border: 1px solid var(--line); background: var(--panel); border-radius: 18px; padding: 18px 20px; box-shadow: var(--shadow); display: flex; gap: 16px; align-items: flex-start; transition: transform .12s, box-shadow .12s; }
+.room:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(11,74,86,.16); }
+.room .ic { font-size: 40px; width: 64px; height: 64px; display: grid; place-items: center; border-radius: 16px; background: var(--accent-soft); flex: none; }
+.room h3 { font-size: 20px; margin: 0; }
+.room .kind { font-size: 13px; color: var(--accent); font-weight: 700; }
+.room p { margin: 4px 0 8px; color: var(--sub); font-size: 14px; }
+.room .prog { display: block; height: 8px; background: #e5efee; border-radius: 99px; overflow: hidden; }
+.room .prog i { display: block; height: 100%; background: var(--accent); }
+.room .pt { display: block; font-size: 13px; color: var(--sub); margin-top: 4px; }
+.rooms.small { grid-template-columns: repeat(2, 1fr); margin-top: 16px; }
+.rooms.small .room { padding: 12px 16px; align-items: center; }
+.rooms.small .ic { width: 48px; height: 48px; font-size: 28px; background: #fff3d6; }
+
+/* ---------- list of stages ---------- */
+.stage-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; margin-top: 14px; }
+.stage-card { text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 6px; }
+.stage-card:hover { border-color: var(--accent); }
+.stage-card .no { font-size: 12px; color: var(--sub); font-weight: 700; }
+.stage-card h3 { font-size: 17px; margin: 0; }
+.stage-card.clear { background: linear-gradient(0deg, #f3fbf7, #fff); }
+
+/* ---------- molecule blocks ---------- */
+.blk { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; position: relative; }
+.shape { width: 66px; height: 66px; display: grid; place-items: center; background: var(--c); color: #1b1b1b; font-weight: 800; font-size: 17px; position: relative; }
+.shape b { position: relative; z-index: 1; text-shadow: 0 1px 0 rgba(255,255,255,.5); }
+.sh-hex { clip-path: polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0 50%); }
+.sh-pent { clip-path: polygon(50% 2%, 98% 38%, 80% 96%, 20% 96%, 2% 38%); }
+.sh-circ { border-radius: 50%; width: 52px; height: 52px; }
+.sh-aa { border-radius: 50%; border: 4px solid rgba(0,0,0,.18); }
+.sh-aa::after { content: ''; position: absolute; bottom: -10px; left: 50%; width: 10px; height: 14px; margin-left: -5px; background: var(--c); border-radius: 0 0 5px 5px; border: 3px solid rgba(0,0,0,.18); border-top: 0; }
+.sh-base { border-radius: 8px 8px 22px 22px; width: 54px; height: 62px; color: #fff; text-shadow: none; }
+.sh-base b { text-shadow: none; font-size: 24px; }
+.sh-bar { width: 44px; height: 120px; border-radius: 10px; writing-mode: vertical-rl; font-size: 15px; letter-spacing: .1em; }
+.sh-zig { width: 110px; height: 40px; border-radius: 20px 6px 6px 20px; background: repeating-linear-gradient(135deg, var(--c) 0 10px, color-mix(in srgb, var(--c) 82%, #000) 10px 12px); font-size: 14px; }
+.blk small { font-size: 12px; color: var(--sub); font-weight: 700; white-space: nowrap; }
+.blk .end { position: absolute; top: 22px; font-size: 13px; font-weight: 700; color: var(--coral); background: #fff; border-radius: 6px; padding: 0 3px; border: 1px solid #f3c7bb; z-index: 2; white-space: nowrap; }
+.blk .end.l { right: calc(100% + 2px); }
+.blk .end.r { left: calc(100% + 2px); }
+.sh-zig + small, .sh-bar + small { margin-top: 0; }
+
+.mol { display: inline-flex; align-items: center; flex-wrap: nowrap; }
+.bond { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 28px; padding: 0 2px; position: relative; align-self: center; margin-top: -18px; }
+.bond .bl { width: 100%; min-width: 24px; height: 6px; background: #3b5960; border-radius: 3px; }
+.bond.hi .bl { background: repeating-linear-gradient(90deg, #3b5960 0 8px, #fff 8px 10px); height: 8px; }
+.bond .bn { font-size: 11px; color: var(--sub); white-space: nowrap; margin-top: 2px; font-weight: 700; }
+.bond .bf { font-size: 13px; color: var(--coral); white-space: nowrap; font-weight: 800; }
+.gap { width: 26px; text-align: center; color: #9db6b3; font-weight: 800; font-size: 22px; margin-top: -18px; }
+
+.slot { width: 70px; height: 70px; border: 3px dashed #9bc4c0; border-radius: 14px; display: grid; place-items: center; color: #7aa29e; font-weight: 700; font-size: 12px; text-align: center; background: rgba(255,255,255,.6); padding: 2px; line-height: 1.25; }
+.slot.next { border-color: var(--coral); background: #fff4ef; animation: pulse 1.2s infinite; }
+.slot.bar { width: 50px; height: 124px; }
+.slot.zig { width: 112px; height: 44px; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 6px rgba(231,111,81,.18); } }
+
+.bench { position: relative; background: #f6fbfa; border: 2px solid var(--line); border-radius: 16px; min-height: 200px; padding: 30px 20px 24px; display: flex; align-items: center; justify-content: center; overflow-x: auto; overflow-y: hidden; }
+.bench .mol { padding: 0 40px; }
+.fatmol { display: inline-flex; align-items: center; gap: 0; }
+.fatmol .arms { display: flex; flex-direction: column; gap: 4px; }
+.fatmol .arm { display: flex; align-items: center; min-height: 40px; }
+.fatmol .arm .bond { margin-top: 0; }
+.fatmol .arm .oh { font-size: 13px; color: var(--coral); font-weight: 800; padding: 0 6px; }
+.fatmol .arm .blk small { display: none; }
+.fatmol .bar-wrap { display: flex; flex-direction: column; align-items: center; }
+
+.pairmol { display: inline-grid; grid-auto-flow: column; gap: 6px 10px; grid-template-rows: auto auto auto; align-items: center; justify-items: center; }
+.pairmol .lab { font-size: 12px; font-weight: 700; color: var(--sub); writing-mode: horizontal-tb; white-space: nowrap; }
+.hb { display: flex; gap: 5px; height: 26px; }
+.hb i { width: 3px; height: 100%; background: repeating-linear-gradient(0deg, #3b5960 0 4px, transparent 4px 7px); }
+.pairmol .blk small { display: none; }
+.pairmol .top .shape { border-radius: 22px 22px 8px 8px; }
+
+.palette { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 16px; }
+.pc { background: var(--panel); border: 2px solid var(--line); border-radius: 14px; padding: 10px 12px 6px; min-width: 96px; display: flex; justify-content: center; }
+.pc:hover { border-color: var(--accent); transform: translateY(-2px); }
+.pc.shake { animation: shake .4s; border-color: var(--ng); }
+@keyframes shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+
+.bubble { position: absolute; pointer-events: none; font-weight: 800; color: #0a6fb5; background: #dff1ff; border: 2px solid #8cc8f3; border-radius: 999px; padding: 2px 10px; font-size: 15px; animation: rise 1.6s ease-out forwards; z-index: 5; white-space: nowrap; }
+.bubble.in { animation: drop 0.9s ease-in forwards; }
+@keyframes rise { 0% { transform: translate(-50%, 0) scale(.6); opacity: 0; } 15% { opacity: 1; transform: translate(-50%, -10px) scale(1); } 100% { transform: translate(-50%, -80px); opacity: 0; } }
+@keyframes drop { 0% { transform: translate(-50%, -70px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(-50%, 0); opacity: 0; } }
+.popin { animation: popin .45s ease-out; }
+@keyframes popin { 0% { transform: scale(.7); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+.msg { min-height: 30px; margin-top: 12px; font-weight: 700; text-align: center; }
+.msg.ok { color: var(--ok); }
+.msg.ng { color: var(--ng); }
+.toolbar { display: flex; gap: 10px; align-items: center; justify-content: flex-end; margin: 10px 0 0; flex-wrap: wrap; }
+.switch { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--sub); background: #fff; border: 2px solid var(--line); border-radius: 999px; padding: 4px 12px; }
+.switch[aria-pressed="true"] { border-color: var(--coral); color: var(--coral); background: #fff4ef; }
+
+.goal { background: #fffaf0; border-left: 5px solid var(--gold); padding: 10px 14px; border-radius: 8px; margin: 10px 0 14px; }
+
+/* ---------- quiz ---------- */
+.qcard { max-width: 820px; margin: 0 auto; }
+.qtext { font-size: 21px; font-weight: 700; margin: 10px 0 18px; }
+.choices { display: grid; gap: 10px; }
+.choices.ox { grid-template-columns: 1fr 1fr; }
+.choice { text-align: left; background: #fff; border: 2px solid var(--line); border-radius: 12px; padding: 12px 16px; font-size: 17px; display: flex; gap: 12px; align-items: center; }
+.choices.ox .choice { justify-content: center; font-size: 40px; font-weight: 800; padding: 6px; }
+.choice .k { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 800; display: grid; place-items: center; font-size: 14px; }
+.choice:hover:not([disabled]) { border-color: var(--accent); background: #f4fbfa; }
+.choice.correct { border-color: var(--ok); background: var(--ok-soft); }
+.choice.wrong { border-color: var(--ng); background: var(--ng-soft); }
+.choice[disabled] { cursor: default; }
+.explain { margin-top: 14px; padding: 12px 16px; border-radius: 12px; background: #f1f7f6; border: 1px solid var(--line); }
+.explain b.ok { color: var(--ok); }
+.explain b.ng { color: var(--ng); }
+.progress { height: 8px; border-radius: 99px; background: #dfeceb; overflow: hidden; }
+.progress i { display: block; height: 100%; background: var(--coral); transition: width .3s; }
+
+/* ---------- sort ---------- */
+.sortarea { text-align: center; }
+.card-big { display: inline-block; min-width: 320px; max-width: 90%; margin: 18px auto 22px; padding: 26px 30px; background: #fff; border: 3px solid var(--accent); border-radius: 18px; font-size: 26px; font-weight: 800; box-shadow: 0 6px 0 var(--accent-soft); }
+.card-big.ok { border-color: var(--ok); background: var(--ok-soft); }
+.card-big.ng { border-color: var(--ng); background: var(--ng-soft); animation: shake .4s; }
+.bins { display: grid; gap: 12px; }
+.bin { background: #fff; border: 3px solid var(--line); border-radius: 16px; padding: 18px 10px; font-size: 18px; font-weight: 800; min-height: 96px; position: relative; }
+.bin:hover { border-color: var(--accent); background: #f4fbfa; }
+.bin .kb { position: absolute; top: 6px; left: 10px; font-size: 12px; color: var(--sub); }
+.bin.hit { border-color: var(--ok); background: var(--ok-soft); }
+.bin.hint { border-color: var(--ok); border-style: dashed; }
+.hud { display: flex; gap: 18px; justify-content: center; font-weight: 700; color: var(--sub); flex-wrap: wrap; }
+.hud b { color: var(--ink); font-size: 20px; }
+.match { display: grid; grid-template-columns: 1fr 80px 1fr; gap: 10px; align-items: start; max-width: 860px; margin: 18px auto 0; }
+.match .col { display: grid; gap: 10px; }
+.mitem { background: #fff; border: 2px solid var(--line); border-radius: 12px; padding: 12px 14px; font-size: 17px; font-weight: 700; text-align: center; }
+.mitem:hover:not([disabled]) { border-color: var(--accent); }
+.mitem.sel { border-color: var(--coral); background: #fff4ef; box-shadow: 0 0 0 3px rgba(231,111,81,.2); }
+.mitem.done { color: #fff; border-color: transparent; cursor: default; }
+.mitem.shake { animation: shake .4s; border-color: var(--ng); }
+
+/* ---------- digest ---------- */
+.dig { display: grid; grid-template-columns: 330px 1fr; gap: 18px; align-items: start; }
+.tract svg { width: 100%; height: auto; display: block; }
+.tract .node rect { fill: #fff; stroke: #a9c9c5; stroke-width: 2; }
+.tract .node text { font-size: 14px; font-weight: 700; fill: var(--ink); }
+.tract .node text.s { font-size: 11px; font-weight: 400; fill: var(--sub); }
+.tract .node.on rect { fill: #fff1d6; stroke: var(--coral); stroke-width: 4; }
+.tract .node.done rect { fill: #eef7f5; }
+.tract .arrow { stroke: #8fb3ae; stroke-width: 2.5; fill: none; marker-end: url(#ah); }
+.molbox { background: #f6fbfa; border: 2px solid var(--line); border-radius: 16px; padding: 16px; min-height: 150px; position: relative; display: flex; flex-wrap: wrap; gap: 16px 22px; align-items: flex-end; justify-content: center; }
+.molbox .mw { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.molbox .mw > .mname { font-size: 13px; font-weight: 800; color: var(--accent); background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 0 10px; }
+.mini .shape { width: 40px; height: 40px; font-size: 12px; }
+.mini .sh-circ { width: 32px; height: 32px; }
+.mini .sh-base { width: 34px; height: 40px; }
+.mini .sh-base b { font-size: 16px; }
+.mini .sh-aa { border-width: 3px; }
+.mini .sh-aa::after { display: none; }
+.mini .sh-bar { width: 26px; height: 74px; font-size: 11px; }
+.mini .sh-zig { width: 64px; height: 24px; font-size: 11px; }
+.mini .blk small { display: none; }
+.mini .bond { min-width: 14px; margin-top: 0; }
+.mini .bond .bl { min-width: 12px; height: 5px; }
+.mini .bond .bn { display: none; }
+.mini .fatmol .arm { min-height: 24px; }
+.mini .fatmol .arms { gap: 1px; }
+.emul { position: absolute; inset: 0; pointer-events: none; }
+.emul i { position: absolute; width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff8d9, #e9c46a); border: 1px solid #c9a44b; animation: emul 1.4s ease-out forwards; }
+@keyframes emul { 0% { transform: translate(0,0) scale(1.8); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(.7); opacity: 0; } }
+.dest { font-size: 14px; font-weight: 800; color: #fff; background: var(--coral); border-radius: 999px; padding: 2px 12px; }
+.slide-out { animation: slideout .9s ease-in forwards; }
+@keyframes slideout { to { transform: translateY(40px) scale(.8); opacity: .15; } }
+
+/* ---------- result / modal ---------- */
+.result { text-align: center; max-width: 640px; margin: 20px auto; }
+.result .big { font-size: 46px; letter-spacing: 6px; }
+.result h2 { font-size: 28px; }
+.xpgain { display: inline-block; background: #fff1c9; color: #7a5300; font-weight: 800; border-radius: 999px; padding: 4px 16px; margin: 8px 0; }
+.overlay { position: fixed; inset: 0; background: rgba(8, 40, 46, .55); display: grid; place-items: center; z-index: 50; padding: 16px; }
+.modal { background: #fff; border-radius: 18px; max-width: 520px; width: 100%; padding: 22px 24px; box-shadow: 0 20px 50px rgba(0,0,0,.3); }
+.modal label { display: block; font-weight: 700; margin: 12px 0 4px; }
+.modal input { width: 100%; font: inherit; padding: 9px 12px; border: 2px solid var(--line); border-radius: 10px; }
+.formrow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.note { font-size: 13px; color: var(--sub); }
+.toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: var(--hdr); color: #fff; padding: 10px 20px; border-radius: 999px; font-weight: 700; z-index: 60; animation: popin .3s; }
+.levelup { position: fixed; inset: 0; display: grid; place-items: center; z-index: 70; pointer-events: none; }
+.levelup div { background: linear-gradient(135deg, #fff6d5, #ffe08a); border: 4px solid var(--gold); color: #5a3b00; font-size: 26px; font-weight: 800; padding: 24px 40px; border-radius: 22px; box-shadow: 0 20px 60px rgba(0,0,0,.3); animation: popin .5s; text-align: center; }
+
+/* ---------- zukan ---------- */
+.zk { display: grid; grid-template-columns: 220px 1fr; gap: 16px; align-items: start; }
+.zk nav { display: grid; gap: 6px; position: sticky; top: 70px; }
+.zk nav button { text-align: left; background: #fff; border: 2px solid var(--line); border-radius: 10px; padding: 8px 12px; font-weight: 700; }
+.zk nav button[aria-current="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.fig { background: #fbfefd; border: 1px solid var(--line); border-radius: 12px; padding: 10px; margin: 10px 0; text-align: center; overflow-x: auto; }
+.fig svg { max-width: 100%; height: auto; }
+.fig svg text { font-family: inherit; }
+.fig .cap { font-size: 12px; color: var(--sub); }
+table.t { border-collapse: collapse; width: 100%; font-size: 15px; margin: 8px 0; }
+table.t th, table.t td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
+table.t th { background: #eef7f5; }
+.points li { margin: 4px 0; }
+
+/* ---------- record ---------- */
+.card-record { max-width: 760px; margin: 0 auto; background: #fff; border: 3px solid var(--hdr); border-radius: 18px; overflow: hidden; }
+.card-record .top { background: var(--hdr); color: #fff; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+.card-record .body { padding: 16px 20px; }
+.card-record table.t th:first-child, .card-record table.t td:nth-child(2) { white-space: nowrap; }
+.card-record .code { font-family: "Consolas", "Menlo", monospace; font-size: 22px; font-weight: 800; letter-spacing: .12em; color: var(--hdr); }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; }
+.badge { border: 2px solid var(--gold); background: #fff8e3; border-radius: 999px; padding: 2px 12px; font-size: 14px; font-weight: 700; }
+.badge.off { border-color: #d5dfdd; background: #f4f7f6; color: #9aaeaa; }
+textarea.copy { width: 100%; min-height: 160px; font-family: "Consolas", "Menlo", monospace; font-size: 13px; border: 2px solid var(--line); border-radius: 10px; padding: 10px; }
+details.teacher { max-width: 760px; margin: 18px auto 0; }
+details.teacher summary { cursor: pointer; color: var(--sub); font-weight: 700; }
+
+@media (max-width: 860px) {
+  .rooms, .rooms.small { grid-template-columns: 1fr; }
+  .dig { grid-template-columns: 1fr; }
+  .tract { max-width: 360px; margin: 0 auto; }
+  .zk { grid-template-columns: 1fr; }
+  .zk nav { position: static; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  #hdr .xpbar { display: none; }
+  .hero { flex-direction: column; align-items: flex-start; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition: none !important; }
+}
+@media print {
+  #hdr, .noprint { display: none !important; }
+  body { background: #fff; }
+}
+</style>
+</head>
+<body>
+<header id="hdr"></header>
+<main id="app"></main>
+
+<script>
+'use strict';
+/* =====================================================================
+   ここから下はアプリ本体のプログラムです（通常は編集不要）
+   ===================================================================== */
+
+// ---------- パーツ（単量体など）の定義 ----------
+const PIECES = {
+  glc:   { name: 'グルコース', label: 'Glc', shape: 'hex', color: '#f2b632', cat: 'sugar', L: 'HO', R: 'OH', hint: 'ブドウ糖ともいう単糖。デンプン・マルトースの材料' },
+  fru:   { name: 'フルクトース', label: 'Fru', shape: 'pent', color: '#f08c3a', cat: 'sugar', L: 'HO', R: 'OH', hint: '果糖ともいう単糖' },
+  gal:   { name: 'ガラクトース', label: 'Gal', shape: 'hex', color: '#b5c935', cat: 'sugar', L: 'HO', R: 'OH', hint: '乳糖（ラクトース）の材料になる単糖' },
+  rib:   { name: 'リボース', label: 'R', shape: 'pent', color: '#7cc47f', cat: 'sugar', L: 'HO', R: 'OH', hint: 'RNAやATPに含まれる糖' },
+  dR:    { name: 'デオキシリボース', label: 'dR', shape: 'pent', color: '#3fb3a3', cat: 'sugar', L: 'HO', R: 'OH', hint: 'DNAに含まれる糖' },
+  aaGly: { name: 'グリシン', label: 'Gly', shape: 'aa', color: '#f37b63', cat: 'aa', L: 'H₂N', R: 'COOH', hint: 'アミノ酸の一種' },
+  aaAla: { name: 'アラニン', label: 'Ala', shape: 'aa', color: '#e45a84', cat: 'aa', L: 'H₂N', R: 'COOH', hint: 'アミノ酸の一種' },
+  aaSer: { name: 'セリン', label: 'Ser', shape: 'aa', color: '#c77dff', cat: 'aa', L: 'H₂N', R: 'COOH', hint: 'アミノ酸の一種' },
+  aaCys: { name: 'システイン', label: 'Cys', shape: 'aa', color: '#e6d34c', cat: 'aa', L: 'H₂N', R: 'COOH', hint: '硫黄（S）を含むアミノ酸' },
+  aaLys: { name: 'リシン', label: 'Lys', shape: 'aa', color: '#5fa8e8', cat: 'aa', L: 'H₂N', R: 'COOH', hint: 'アミノ酸の一種' },
+  glyc:  { name: 'グリセリン', label: 'グリセリン', shape: 'bar', color: '#c9a27a', cat: 'glyc', hint: '脂肪の材料。–OHを3つもつ' },
+  fa:    { name: '脂肪酸', label: '脂肪酸', shape: 'zig', color: '#e9c46a', cat: 'fa', L: 'HOOC', hint: '脂肪の材料。長い鎖をもつ' },
+  P:     { name: 'リン酸', label: 'P', shape: 'circ', color: '#a99bd6', cat: 'P', L: 'HO', R: 'OH', hint: 'ヌクレオチドやATPに含まれる' },
+  bA:    { name: 'アデニン', label: 'A', shape: 'base', color: '#d94b5f', cat: 'base', hint: '塩基の一種' },
+  bT:    { name: 'チミン', label: 'T', shape: 'base', color: '#3a86d6', cat: 'base', hint: 'DNAだけにある塩基' },
+  bG:    { name: 'グアニン', label: 'G', shape: 'base', color: '#2a9d5c', cat: 'base', hint: '塩基の一種' },
+  bC:    { name: 'シトシン', label: 'C', shape: 'base', color: '#d98a12', cat: 'base', hint: '塩基の一種' },
+  bU:    { name: 'ウラシル', label: 'U', shape: 'base', color: '#8a5cc7', cat: 'base', hint: 'RNAだけにある塩基' },
+};
+const BOND_TYPES = {
+  'sugar-sugar': { name: 'グリコシド結合', f: '–O–' },
+  'aa-aa':       { name: 'ペプチド結合', f: '–CO–NH–' },
+  'fa-glyc':     { name: 'エステル結合', f: '–O–CO–' },
+  'P-sugar':     { name: 'リン酸–糖', f: '–O–' },
+  'base-sugar':  { name: '糖–塩基', f: 'C–N' },
+  'P-P':         { name: '高エネルギーリン酸結合', f: '〜' },
+};
+function bondOf(a, b) {
+  const k = [PIECES[a].cat, PIECES[b].cat].sort().join('-');
+  return BOND_TYPES[k] || { name: '結合', f: '–' };
+}
+const DNA_PAIR = { bA: 'bT', bT: 'bA', bG: 'bC', bC: 'bG' };
+const RNA_PAIR = { bA: 'bU', bT: 'bA', bG: 'bC', bC: 'bG' };
+const HB = { bA: 2, bT: 2, bU: 2, bG: 3, bC: 3 };
+
+const RANKS = [
+  { xp: 0, name: '見習い研究員' }, { xp: 100, name: '研究助手' }, { xp: 300, name: '研究員' },
+  { xp: 550, name: '主任研究員' }, { xp: 850, name: 'ラボリーダー' }, { xp: 1150, name: '博士' },
+];
+const ROOM_NAMES = { build: '合成ルーム', sort: '分類ラボ', quiz: '研究員昇格試験', digest: '消化管探検ミッション' };
+
+// ---------- 便利関数 ----------
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const starsHtml = (n, max = 3) => `<span class="stars" aria-label="星${n}つ">${'★'.repeat(n)}<span class="off">${'★'.repeat(Math.max(0, max - n))}</span></span>`;
+const pad = n => String(n).padStart(2, '0');
+const fmtDate = d => `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const fmtSec = s => `${Math.floor(s / 60)}:${pad(Math.floor(s % 60))}`;
+function starsByMistakes(n) { return n === 0 ? 3 : n <= 2 ? 2 : 1; }
+
+// ---------- 保存 ----------
+const KEY = 'koubunshi-lab-v1';
+function blank() { return { v: 1, profile: null, build: {}, sort: {}, quiz: {}, digest: {}, miss: {}, mute: false, formula: false, first: null, last: null }; }
+function load() {
+  try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.v === 1) return Object.assign(blank(), s); } catch (e) { /* 保存できない環境 */ }
+  return blank();
+}
+let S = load();
+function save() { S.last = Date.now(); if (!S.first) S.first = S.last; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* 保存できない環境 */ } }
+function addMiss(key, text) { const o = S.miss[key] || { n: 0, t: text }; o.n++; o.t = text; S.miss[key] = o; }
+
+// ---------- XP・称号 ----------
+function calcXP() {
+  let x = 0;
+  for (const k in S.build) x += (S.build[k].stars || 0) * 15;
+  for (const k in S.sort) x += (S.sort[k].stars || 0) * 15;
+  for (const k in S.quiz) x += Math.round((S.quiz[k].best || 0) / (S.quiz[k].n || QUIZ_PER_PLAY) * QUIZ_PER_PLAY) * 10;
+  for (const k in S.digest) x += (S.digest[k].stars || 0) * 20;
+  return x;
+}
+function rankOf(x) { let r = RANKS[0], next = null; for (let i = 0; i < RANKS.length; i++) { if (x >= RANKS[i].xp) { r = RANKS[i]; next = RANKS[i + 1] || null; } } return { r, next }; }
+function withXP(fn) {
+  const before = calcXP(), rb = rankOf(before).r.name;
+  fn(); save();
+  const after = calcXP(), ra = rankOf(after).r.name;
+  renderHeader();
+  if (ra !== rb) setTimeout(() => levelUp(ra), 700);
+  return after - before;
+}
+function levelUp(name) {
+  sfx('fanfare');
+  const d = document.createElement('div');
+  d.className = 'levelup';
+  d.innerHTML = `<div>🎉 昇格！<br>あなたは「${esc(name)}」になりました</div>`;
+  document.body.appendChild(d);
+  setTimeout(() => d.remove(), 2600);
+}
+
+// ---------- 効果音 ----------
+let actx = null;
+function tone(f, t0, dur, type = 'sine', vol = .12) {
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.value = f;
+  g.gain.setValueAtTime(vol, actx.currentTime + t0);
+  g.gain.exponentialRampToValueAtTime(.0001, actx.currentTime + t0 + dur);
+  o.connect(g).connect(actx.destination);
+  o.start(actx.currentTime + t0); o.stop(actx.currentTime + t0 + dur + .02);
+}
+function sfx(kind) {
+  if (S.mute) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if (kind === 'ok') { tone(660, 0, .12); tone(990, .09, .18); }
+    else if (kind === 'ng') { tone(180, 0, .25, 'square', .06); }
+    else if (kind === 'pop') { tone(520, 0, .08, 'triangle'); }
+    else if (kind === 'clear') { [523, 659, 784, 1046].forEach((f, i) => tone(f, i * .1, .25)); }
+    else if (kind === 'fanfare') { [523, 659, 784, 659, 784, 1046].forEach((f, i) => tone(f, i * .12, .3, 'triangle')); }
+  } catch (e) { /* 音が出せない環境 */ }
+}
+
+// ---------- 画面管理 ----------
+const app = document.getElementById('app');
+let cleanups = [];
+let onKey = null;
+function view(html) {
+  cleanups.forEach(f => f()); cleanups = []; onKey = null;
+  app.innerHTML = html;
+  window.scrollTo(0, 0);
+}
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input, textarea')) return;
+  if (onKey) onKey(e);
+});
+function toast(t) {
+  const d = document.createElement('div'); d.className = 'toast'; d.textContent = t;
+  document.body.appendChild(d); setTimeout(() => d.remove(), 2000);
+}
+
+function renderHeader() {
+  const x = calcXP(), { r, next } = rankOf(x);
+  const pct = next ? Math.round((x - r.xp) / (next.xp - r.xp) * 100) : 100;
+  const p = S.profile;
+  document.getElementById('hdr').innerHTML = `
+    <button class="logo" id="hHome" title="ホームへ"><span class="cell"></span>高分子ラボ</button>
+    <div class="me">
+      ${p ? `<span>${esc(p.cls)} ${esc(p.no)}番 ${esc(p.name)}</span>` : ''}
+      <span class="rank" title="称号">${esc(r.name)}</span>
+      <span title="${next ? `次の称号「${next.name}」まで ${next.xp - x} XP` : '最高の称号です'}">XP ${x}</span>
+      <span class="xpbar" aria-hidden="true"><i style="width:${pct}%"></i></span>
+      <button class="hbtn" id="hRec">📒 学習記録</button>
+      <button class="hbtn" id="hMute" aria-pressed="${S.mute}">${S.mute ? '🔇 音なし' : '🔊 音あり'}</button>
+    </div>`;
+  $('#hHome').onclick = () => go('home');
+  $('#hRec').onclick = () => go('record');
+  $('#hMute').onclick = () => { S.mute = !S.mute; save(); renderHeader(); };
+}
+
+function go(name, ...args) { SCREENS[name](...args); }
+
+// ---------- 分子の描画 ----------
+function blockHtml(id, opt = {}) {
+  const p = PIECES[id];
+  const ends = (opt.endL ? `<span class="end l">${esc(opt.endL)}–</span>` : '') + (opt.endR ? `<span class="end r">–${esc(opt.endR)}</span>` : '');
+  return `<div class="blk${opt.cls ? ' ' + opt.cls : ''}" title="${esc(p.name)}">${ends}<div class="shape sh-${p.shape}" style="--c:${p.color}"><b>${esc(p.label)}</b></div><small>${esc(p.name)}</small></div>`;
+}
+function bondHtml(a, b, formula, isNew) {
+  const bd = bondOf(a, b), hi = bd.f === '〜';
+  return `<div class="bond${hi ? ' hi' : ''}"${isNew ? ' data-new="1"' : ''}>${formula ? `<span class="bf">${esc(bd.f)}</span>` : ''}<span class="bl"></span><span class="bn">${esc(bd.name)}</span></div>`;
+}
+// 一列の分子（空き枠つき）。slots: [id|null], 各枠の目標 targets
+function chainHtml(items, opt = {}) {
+  const formula = !!opt.formula;
+  let h = '<div class="mol">';
+  items.forEach((it, i) => {
+    if (i > 0) {
+      const prev = items[i - 1];
+      if (prev.id && it.id) h += bondHtml(prev.id, it.id, formula, opt.newAt === i || opt.newAt === i - 1);
+      else h += '<div class="gap">+</div>';
+    }
+    if (it.id) {
+      const p = PIECES[it.id];
+      const leftFree = i === 0 || !items[i - 1].id, rightFree = i === items.length - 1 || !items[i + 1].id;
+      h += blockHtml(it.id, { endL: formula && leftFree ? p.L : '', endR: formula && rightFree ? p.R : '', cls: opt.newAt === i ? 'popin' : '' });
+    } else {
+      h += `<div class="slot${it.next ? ' next' : ''}">${it.label ? esc(it.label) : '？'}</div>`;
+    }
+  });
+  return h + '</div>';
+}
+// 脂肪（グリセリン＋脂肪酸）
+function fatHtml(glycId, arms, opt = {}) {
+  const formula = !!opt.formula;
+  let h = '<div class="fatmol"><div class="bar-wrap">';
+  h += glycId ? blockHtml('glyc', { cls: opt.newAt === 0 ? 'popin' : '' }) : `<div class="slot bar${opt.nextGlyc ? ' next' : ''}">${opt.showNames ? 'グリセリン' : '？'}</div>`;
+  h += '</div><div class="arms">';
+  arms.forEach((a, i) => {
+    h += '<div class="arm">';
+    if (glycId && a) h += bondHtml('glyc', 'fa', formula, opt.newAt === i + 1 || (opt.newAt === 0));
+    else if (glycId && formula) h += '<span class="oh">–OH</span>';
+    else h += '<div class="gap" style="margin-top:0">+</div>';
+    h += a ? blockHtml('fa', { cls: opt.newAt === i + 1 ? 'popin' : '', endR: formula ? 'R' : '' }) : `<div class="slot zig${opt.nextArm === i ? ' next' : ''}">${opt.showNames ? '脂肪酸' : '？'}</div>`;
+    h += '</div>';
+  });
+  return h + '</div></div>';
+}
+// 消化画面などで使う小さな分子
+function molHtml(mol) {
+  const p = mol.p;
+  let inner;
+  if (p[0] === 'glyc') inner = fatHtml('glyc', p.slice(1).map(() => 'fa'));
+  else inner = chainHtml(p.map(id => ({ id })));
+  return `<div class="mw"><div class="mini">${inner}</div><span class="mname">${esc(mol.n)}</span></div>`;
+}
+function spawnBubbles(container, targets, text, cls = '') {
+  const cr = container.getBoundingClientRect();
+  targets.forEach((t, i) => {
+    const r = t.getBoundingClientRect();
+    const b = document.createElement('div');
+    b.className = 'bubble ' + cls; b.textContent = text;
+    b.style.left = (r.left - cr.left + r.width / 2 + container.scrollLeft) + 'px';
+    b.style.top = (r.top - cr.top - 4) + 'px';
+    b.style.animationDelay = (i * 0.12) + 's';
+    container.appendChild(b);
+    setTimeout(() => b.remove(), 2000 + i * 120);
+  });
+}
+
+// ---------- 名前の登録 ----------
+function profileModal(first) {
+  const p = S.profile || { cls: '', no: '', name: '' };
+  const ov = document.createElement('div');
+  ov.className = 'overlay';
+  ov.innerHTML = `<form class="modal" id="pf">
+    <h2>${first ? '🔬 高分子ラボへようこそ！' : '名前の変更'}</h2>
+    ${first ? '<p>細胞の中の「高分子」を、つくって・分けて・こわして学ぶ研究所です。まずは研究員登録をしよう。</p>' : ''}
+    <div class="formrow">
+      <div><label for="pfCls">クラス</label><input id="pfCls" required maxlength="12" placeholder="例：2年3組" value="${esc(p.cls)}"></div>
+      <div><label for="pfNo">番号</label><input id="pfNo" required maxlength="4" inputmode="numeric" placeholder="例：15" value="${esc(p.no)}"></div>
+    </div>
+    <label for="pfName">名前</label><input id="pfName" required maxlength="20" placeholder="例：山田 花子" value="${esc(p.name)}">
+    <p class="note">入力した内容は、この端末のブラウザの中にだけ保存されます（インターネットには送信されません）。学習記録カードに表示されます。</p>
+    <div class="row" style="justify-content:flex-end">${first ? '' : '<button type="button" class="btn sub" id="pfCancel">キャンセル</button>'}<button class="btn">${first ? '登録してはじめる' : '保存'}</button></div>
+  </form>`;
+  document.body.appendChild(ov);
+  $('#pfCls', ov).focus();
+  if (!first) $('#pfCancel', ov).onclick = () => ov.remove();
+  $('#pf', ov).onsubmit = e => {
+    e.preventDefault();
+    S.profile = { cls: $('#pfCls', ov).value.trim(), no: $('#pfNo', ov).value.trim(), name: $('#pfName', ov).value.trim() };
+    save(); ov.remove(); renderHeader();
+    if (first) go('home'); else go('record');
+  };
+}
+
+// =====================================================================
+//  画面
+// =====================================================================
+const SCREENS = {};
+
+// ---------- ホーム ----------
+SCREENS.home = () => {
+  const b = BUILD_STAGES.filter(s => S.build[s.id]).length;
+  const so = SORT_STAGES.filter(s => (S.sort[s.id] || {}).stars > 0).length;
+  const q = QUIZ_LEVELS.filter(l => S.quiz[l.lv] && S.quiz[l.lv].best / S.quiz[l.lv].n >= .8).length;
+  const d = DIGEST_STAGES.filter(s => S.digest[s.id]).length;
+  const room = (key, ic, name, kind, desc, done, total, unit) => `
+    <button class="room" data-go="${key}">
+      <span class="ic" aria-hidden="true">${ic}</span>
+      <span class="grow">
+        <span class="kind">${kind}</span>
+        <h3>${name}</h3>
+        <p>${desc}</p>
+        <span class="prog"><i style="width:${Math.round(done / total * 100)}%"></i></span>
+        <span class="pt">${unit} ${done} / ${total}</span>
+      </span>
+    </button>`;
+  view(`
+    <section class="hero">
+      <div class="grow">
+        <h1>細胞内ラボへようこそ、${esc(S.profile ? S.profile.name : '')}さん</h1>
+        <p class="muted" style="margin:0">糖・タンパク質・脂質・核酸。からだをつくる分子を<b>つくって</b>（合成）、<b>分けて</b>（分類）、<b>こわして</b>（消化）みよう。<br>ステージをクリアするとXPがたまり、称号が上がっていきます。</p>
+      </div>
+    </section>
+    <div class="rooms">
+      ${room('buildList', '🧪', ROOM_NAMES.build, '分子組み立てパズル', '単量体を脱水縮合でつないで、二糖・ペプチド・脂肪・DNA・ATPをつくろう。', b, BUILD_STAGES.length, 'クリア')}
+      ${room('sortList', '🗂️', ROOM_NAMES.sort, '仕分け・マッチング', '物質を正しいグループに仕分けたり、ペアを見つけたりしよう。', so, SORT_STAGES.length, 'クリア')}
+      ${room('quizList', '📝', ROOM_NAMES.quiz, 'クイズ＋レベルアップ', '初級から博士試験まで。8割以上の正解で合格！', q, QUIZ_LEVELS.length, '合格')}
+      ${room('digestList', '🫁', ROOM_NAMES.digest, '消化シミュレーション', '食べ物の高分子が、口から細胞までどう変わるかを追いかけよう。', d, DIGEST_STAGES.length, 'クリア')}
+    </div>
+    <div class="rooms small">
+      <button class="room" data-go="zukan"><span class="ic">📖</span><span class="grow"><h3>分子図鑑</h3><p style="margin:0">構造式（簡略図）と、ポイントのまとめ</p></span></button>
+      <button class="room" data-go="record"><span class="ic">📒</span><span class="grow"><h3>学習記録カード</h3><p style="margin:0">取り組み状況をまとめて先生に提出</p></span></button>
+    </div>`);
+  $$('[data-go]').forEach(el => el.onclick = () => go(el.dataset.go));
+};
+
+// ---------- ステージ一覧（共通） ----------
+function listScreen(title, lead, items, onPick) {
+  view(`
+    <button class="back" id="bk">← ホームへ</button>
+    <h2>${title}</h2>
+    <p class="muted">${lead}</p>
+    <div class="stage-grid">
+      ${items.map((it, i) => `
+        <button class="stage-card${it.stars ? ' clear' : ''}" data-i="${i}">
+          <span class="row"><span class="no">${it.no}</span>${it.tag ? `<span class="tag">${esc(it.tag)}</span>` : ''}</span>
+          <h3>${esc(it.title)}</h3>
+          <span class="row"><span class="grow muted" style="font-size:13px">${it.sub || ''}</span>${starsHtml(it.stars || 0)}</span>
+        </button>`).join('')}
+    </div>`);
+  $('#bk').onclick = () => go('home');
+  $$('.stage-card').forEach(el => el.onclick = () => onPick(+el.dataset.i));
+}
+
+// =====================================================================
+//  合成ルーム（分子組み立て）
+// =====================================================================
+SCREENS.buildList = () => listScreen(`🧪 ${ROOM_NAMES.build}`,
+  'パーツをクリックして分子を組み立てよう。まちがいが少ないほど★が増えます。「構造式モード」をONにすると、つながる部分の原子のようすが見えます。',
+  BUILD_STAGES.map((s, i) => ({ no: `STAGE ${i + 1}`, tag: s.group, title: s.title, stars: (S.build[s.id] || {}).stars || 0 })),
+  i => go('build', i));
+
+SCREENS.build = (idx) => {
+  const st = BUILD_STAGES[idx];
+  const type = st.type || 'chain';
+  const slots = type === 'pair' ? st.template.map(() => null) : st.slots.map(() => null);
+  const targets = type === 'pair' ? st.template.map(t => (st.mode === 'rna' ? RNA_PAIR : DNA_PAIR)[t]) : st.slots;
+  const g = { mistakes: 0, done: false, lastAt: -1 };
+
+  view(`
+    <button class="back" id="bk">← ステージ一覧</button>
+    <div class="row"><h2 class="grow">STAGE ${idx + 1}　${esc(st.title)}</h2><span class="tag">${esc(st.group)}</span></div>
+    <div class="goal">🎯 ${esc(st.goal)}</div>
+    <div class="bench" id="bench"></div>
+    <div class="toolbar">
+      <span class="muted grow" id="miss">まちがい：0</span>
+      ${type === 'pair' ? '' : `<button class="switch" id="fx" aria-pressed="${S.formula}">⚗️ 構造式モード ${S.formula ? 'ON' : 'OFF'}</button>`}
+      <button class="btn sub small" id="reset">やり直す</button>
+    </div>
+    <div class="msg" id="msg">下のパーツから選んでね</div>
+    <div class="palette" id="pal">
+      ${st.palette.map(id => `<button class="pc" data-p="${id}" aria-label="${esc(PIECES[id].name)}">${blockHtml(id)}</button>`).join('')}
+    </div>
+    <div id="after"></div>`);
+  $('#bk').onclick = () => go('buildList');
+  $('#reset').onclick = () => go('build', idx);
+  if ($('#fx')) $('#fx').onclick = () => { S.formula = !S.formula; save(); $('#fx').setAttribute('aria-pressed', S.formula); $('#fx').textContent = `⚗️ 構造式モード ${S.formula ? 'ON' : 'OFF'}`; draw(-1); };
+
+  function nextIndex(pieceId) {
+    if (type === 'pair' || st.ordered) return slots.indexOf(null);
+    return slots.findIndex((s, i) => s === null && targets[i] === pieceId);
+  }
+  function draw(newAt) {
+    const bench = $('#bench');
+    const nx = slots.indexOf(null);
+    if (type === 'fat') {
+      const nextArm = slots.slice(1).indexOf(null);
+      bench.innerHTML = fatHtml(slots[0], slots.slice(1), { formula: S.formula, newAt, nextGlyc: !slots[0], nextArm: slots[0] ? nextArm : -1, showNames: st.showNames });
+    } else if (type === 'pair') {
+      const label = st.mode === 'rna' ? ['DNA（鋳型鎖）', 'RNA'] : ['DNA', '相補鎖'];
+      let h = '<div class="pairmol">';
+      h += `<span class="lab">${label[0]}</span><span></span><span class="lab">${label[1]}</span>`;
+      st.template.forEach((t, i) => {
+        h += `<div class="top">${blockHtml(t)}</div>`;
+        h += slots[i] ? `<div class="hb" title="水素結合 ${HB[t]}本">${'<i></i>'.repeat(HB[t])}</div>` : '<div class="hb"></div>';
+        h += slots[i] ? blockHtml(slots[i], { cls: newAt === i ? 'popin' : '' }) : `<div class="slot${i === nx ? ' next' : ''}">？</div>`;
+      });
+      bench.innerHTML = h + '</div>';
+    } else {
+      const items = slots.map((id, i) => ({ id, label: st.showNames ? PIECES[targets[i]].name : '', next: st.ordered && i === nx }));
+      bench.innerHTML = chainHtml(items, { formula: S.formula, newAt });
+    }
+    if (newAt >= 0 && type !== 'pair') {
+      const nb = $$('.bond[data-new]', bench);
+      if (nb.length) spawnBubbles(bench, nb, 'H₂O');
+    }
+  }
+  function hintFor(pid, at) {
+    if (type === 'pair') {
+      const t = st.template[at];
+      if (st.mode === 'rna' && pid === 'bT') return 'RNAにはチミン（T）がないよ。かわりに何を使う？';
+      if (st.mode === 'dna' && pid === 'bU') return 'ウラシル（U）はRNAの塩基。DNAには使わないよ。';
+      return `${PIECES[t].name}（${PIECES[t].label}）と対になる塩基を考えよう。A–${st.mode === 'rna' ? 'U' : 'T'}、G–C がペアだよ。`;
+    }
+    const p = PIECES[pid];
+    if (!targets.includes(pid)) return `「${p.name}」は${p.hint}。この分子の材料ではないよ。`;
+    if (st.ordered) return `順番がちがうよ。次は「${PIECES[targets[at]].name}」。`;
+    return `「${p.name}」はもう足りているよ。`;
+  }
+  function pick(pid, btn) {
+    if (g.done) return;
+    const at = nextIndex(pid);
+    const want = at >= 0 ? targets[at] : null;
+    const okPick = type === 'pair' || st.ordered ? (at >= 0 && want === pid) : at >= 0;
+    if (!okPick) {
+      g.mistakes++;
+      addMiss('build:' + st.id + ':' + pid, `【合成】${st.title}：${PIECES[pid].name}を選んだ`);
+      save();
+      sfx('ng');
+      btn.classList.remove('shake'); void btn.offsetWidth; btn.classList.add('shake');
+      $('#msg').className = 'msg ng';
+      $('#msg').textContent = '✖ ' + hintFor(pid, type === 'pair' || st.ordered ? slots.indexOf(null) : at);
+      $('#miss').textContent = `まちがい：${g.mistakes}`;
+      return;
+    }
+    slots[at] = pid;
+    const bonded = type === 'pair' ? false : (type === 'fat' ? (at === 0 ? slots.slice(1).some(Boolean) : !!slots[0]) : ((at > 0 && slots[at - 1]) || (at < slots.length - 1 && slots[at + 1])));
+    sfx(bonded ? 'ok' : 'pop');
+    draw(at);
+    $('#msg').className = 'msg ok';
+    if (type === 'pair') $('#msg').textContent = `○ ${PIECES[st.template[at]].label}–${PIECES[pid].label}（水素結合 ${HB[pid]}本）`;
+    else if (bonded) {
+      const nb = type === 'fat' ? bondOf('glyc', 'fa') : bondOf(pid, (at > 0 && slots[at - 1]) || slots[at + 1]);
+      $('#msg').textContent = `○ 脱水縮合！ 水（H₂O）が取れて「${nb.name}」でつながった`;
+    } else $('#msg').textContent = `○ ${PIECES[pid].name}を置いた`;
+    if (!slots.includes(null)) finish();
+  }
+  function finish() {
+    g.done = true;
+    sfx('clear');
+    $('#msg').className = 'msg ok';
+    $('#msg').innerHTML = `🎉 「${esc(st.product)}」が完成！ 最後に確認問題に答えよう。`;
+    $('#pal').style.display = 'none';
+    const q = st.quiz;
+    const order = shuffle(q.c.map((t, i) => ({ t, ok: i === 0 })));
+    $('#after').innerHTML = `<div class="panel qcard" style="margin-top:14px">
+      <div class="qtext">Q. ${esc(q.q)}</div>
+      <div class="choices">${order.map((o, i) => `<button class="choice" data-i="${i}"><span class="k">${i + 1}</span>${esc(o.t)}</button>`).join('')}</div>
+      <div id="qx"></div></div>`;
+    $('#after').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    $$('#after .choice').forEach(btn => btn.onclick = () => {
+      const o = order[+btn.dataset.i];
+      if (o.ok) {
+        sfx('ok');
+        btn.classList.add('correct');
+        $$('#after .choice').forEach(b => b.disabled = true);
+        $('#qx').innerHTML = `<div class="explain"><b class="ok">正解！</b> ${esc(q.ex)}</div><div class="row" style="justify-content:center;margin-top:14px"><button class="btn coral" id="toRes">結果を見る</button></div>`;
+        $('#toRes').onclick = result;
+        onKey = e => { if (e.key === 'Enter') result(); };
+      } else {
+        sfx('ng');
+        g.mistakes++;
+        $('#miss').textContent = `まちがい：${g.mistakes}`;
+        addMiss('build:' + st.id + ':quiz', `【合成】${st.title}：${q.q}`);
+        save();
+        btn.classList.add('wrong'); btn.disabled = true;
+        $('#qx').innerHTML = '<div class="explain"><b class="ng">ちがうよ。</b> もう一度考えてみよう。</div>';
+      }
+    });
+    onKey = e => { const n = +e.key; if (n >= 1 && n <= order.length) { const b = $$('#after .choice')[n - 1]; if (b && !b.disabled) b.click(); } };
+  }
+  function result() {
+    const stars = starsByMistakes(g.mistakes);
+    const gain = withXP(() => {
+      const old = S.build[st.id];
+      S.build[st.id] = { stars: Math.max(stars, old ? old.stars : 0), plays: ((old && old.plays) || 0) + 1, lastMistakes: g.mistakes };
+    });
+    resultScreen({
+      title: `「${st.product}」完成！`, stars, gain,
+      lines: [`まちがい：${g.mistakes}回`],
+      retry: () => go('build', idx),
+      next: idx + 1 < BUILD_STAGES.length ? () => go('build', idx + 1) : null,
+      list: () => go('buildList'),
+    });
+  }
+  $$('#pal .pc').forEach(btn => btn.onclick = () => pick(btn.dataset.p, btn));
+  onKey = e => { const n = +e.key; if (n >= 1 && n <= st.palette.length) { const b = $$('#pal .pc')[n - 1]; if (b) b.click(); } };
+  draw(-1);
+};
+
+// ---------- 結果画面（共通） ----------
+function resultScreen(o) {
+  view(`<div class="panel result">
+    <div class="big">${starsHtml(o.stars)}</div>
+    <h2>${esc(o.title)}</h2>
+    ${o.lines.map(l => `<p style="margin:4px 0">${l}</p>`).join('')}
+    ${o.gain > 0 ? `<div class="xpgain">＋${o.gain} XP</div>` : '<p class="muted">（自己ベストを更新するとXPが増えます）</p>'}
+    ${o.extra || ''}
+    <div class="row" style="justify-content:center;margin-top:16px">
+      <button class="btn sub" id="rList">一覧へ</button>
+      <button class="btn sub" id="rRetry">もう一度</button>
+      ${o.next ? '<button class="btn coral" id="rNext">次へ進む →</button>' : ''}
+    </div></div>`);
+  $('#rList').onclick = o.list;
+  $('#rRetry').onclick = o.retry;
+  if (o.next) $('#rNext').onclick = o.next;
+  onKey = e => { if (e.key === 'Enter') (o.next || o.list)(); };
+}
+
+// =====================================================================
+//  分類ラボ（仕分け・マッチング）
+// =====================================================================
+SCREENS.sortList = () => listScreen(`🗂️ ${ROOM_NAMES.sort}`,
+  '仕分けは、カードを正しい箱へ（数字キーでも選べます）。マッチングは、左と右をクリックしてペアをつくろう。',
+  SORT_STAGES.map((s, i) => ({ no: `STAGE ${i + 1}`, tag: s.type === 'bins' ? '仕分け' : 'マッチング', title: s.title, stars: (S.sort[s.id] || {}).stars || 0,
+    sub: S.sort[s.id] ? `ベスト ${S.sort[s.id].best}点` : '' })),
+  i => go(SORT_STAGES[i].type === 'bins' ? 'sortBins' : 'sortMatch', i));
+
+function startTimer(el) {
+  const t0 = Date.now();
+  const iv = setInterval(() => { if (el.isConnected) el.textContent = fmtSec((Date.now() - t0) / 1000); }, 250);
+  cleanups.push(() => clearInterval(iv));
+  return () => (Date.now() - t0) / 1000;
+}
+function sortFinish(idx, stars, score, lines, extra) {
+  const st = SORT_STAGES[idx];
+  if (stars > 0) sfx('clear');
+  const gain = withXP(() => {
+    const old = S.sort[st.id] || { stars: 0, best: 0, plays: 0 };
+    S.sort[st.id] = { stars: Math.max(stars, old.stars), best: Math.max(score, old.best), plays: old.plays + 1 };
+  });
+  resultScreen({
+    title: stars > 0 ? `${st.title} クリア！` : 'おしい！ もう一度挑戦しよう', stars, gain, lines, extra,
+    retry: () => go(st.type === 'bins' ? 'sortBins' : 'sortMatch', idx),
+    next: idx + 1 < SORT_STAGES.length ? () => go(SORT_STAGES[idx + 1].type === 'bins' ? 'sortBins' : 'sortMatch', idx + 1) : null,
+    list: () => go('sortList'),
+  });
+}
+
+SCREENS.sortBins = (idx) => {
+  const st = SORT_STAGES[idx];
+  let cards = shuffle(st.cards);
+  if (st.draw && st.draw < cards.length) cards = cards.slice(0, st.draw);
+  const g = { i: 0, ok: 0, ng: 0, combo: 0, maxCombo: 0, lock: false, wrongs: [] };
+  view(`
+    <button class="back" id="bk">← ステージ一覧</button>
+    <h2>${esc(st.title)}</h2>
+    <div class="hud"><span>カード <b id="hi">1</b> / ${cards.length}</span><span>正解 <b id="hok">0</b></span><span>コンボ <b id="hc">0</b></span><span>時間 <b id="ht">0:00</b></span></div>
+    <div class="sortarea">
+      <div class="card-big" id="card"></div>
+      <div class="bins" style="grid-template-columns:repeat(${st.bins.length},1fr)">
+        ${st.bins.map((b, i) => `<button class="bin" data-b="${i}"><span class="kb">${i + 1}</span>${esc(b)}</button>`).join('')}
+      </div>
+      <div class="msg" id="msg"></div>
+    </div>`);
+  $('#bk').onclick = () => go('sortList');
+  const elapsed = startTimer($('#ht'));
+  function show() {
+    $('#card').className = 'card-big popin';
+    $('#card').textContent = cards[g.i][0];
+    $('#hi').textContent = g.i + 1;
+    $$('.bin').forEach(b => b.classList.remove('hit', 'hint'));
+  }
+  function answer(bi) {
+    if (g.lock) return;
+    g.lock = true;
+    const [text, ans] = cards[g.i];
+    const bins = $$('.bin');
+    if (bi === ans) {
+      g.ok++; g.combo++; g.maxCombo = Math.max(g.maxCombo, g.combo);
+      sfx('ok');
+      $('#card').className = 'card-big ok';
+      bins[bi].classList.add('hit');
+      $('#msg').className = 'msg ok'; $('#msg').textContent = g.combo >= 3 ? `○ ${g.combo}コンボ！` : '○ 正解！';
+    } else {
+      g.ng++; g.combo = 0;
+      sfx('ng');
+      g.wrongs.push(`「${text}」→ ${st.bins[ans]}`);
+      addMiss('sort:' + st.id + ':' + text, `【分類】「${text}」は ${st.bins[ans]}`);
+      $('#card').className = 'card-big ng';
+      bins[ans].classList.add('hint');
+      $('#msg').className = 'msg ng'; $('#msg').textContent = `✖ 正解は「${st.bins[ans]}」`;
+    }
+    $('#hok').textContent = g.ok; $('#hc').textContent = g.combo;
+    setTimeout(() => {
+      if (!$('#card')) return;
+      g.lock = false;
+      g.i++;
+      if (g.i >= cards.length) return end();
+      $('#msg').textContent = '';
+      show();
+    }, bi === ans ? 600 : 1500);
+  }
+  function end() {
+    const sec = elapsed();
+    const acc = g.ok / cards.length;
+    const stars = acc === 1 ? 3 : acc >= .8 ? 2 : acc >= .6 ? 1 : 0;
+    const score = Math.max(0, g.ok * 100 + g.maxCombo * 20 - g.ng * 30 + Math.max(0, Math.round(cards.length * 8 - sec)) * 5);
+    save();
+    sortFinish(idx, stars, score,
+      [`正解 ${g.ok} / ${cards.length}（${Math.round(acc * 100)}%）　最大コンボ ${g.maxCombo}　時間 ${fmtSec(sec)}`, `スコア <b>${score}</b> 点`],
+      g.wrongs.length ? `<div class="explain" style="text-align:left"><b>まちがえたカード</b><ul style="margin:6px 0 0">${g.wrongs.map(w => `<li>${esc(w)}</li>`).join('')}</ul></div>` : '');
+  }
+  $$('.bin').forEach(b => b.onclick = () => answer(+b.dataset.b));
+  onKey = e => { const n = +e.key; if (n >= 1 && n <= st.bins.length) answer(n - 1); };
+  show();
+};
+
+SCREENS.sortMatch = (idx) => {
+  const st = SORT_STAGES[idx];
+  const colors = ['#0d8a8c', '#e76f51', '#7b5cc4', '#2a9d5c', '#d98a12', '#3a86d6', '#c2477e', '#5b6b73'];
+  const L = shuffle(st.pairs.map((p, i) => ({ t: p[0], k: i })));
+  const R = shuffle(st.pairs.map((p, i) => ({ t: p[1], k: i })));
+  const g = { sel: null, done: 0, miss: 0, wrongs: [] };
+  view(`
+    <button class="back" id="bk">← ステージ一覧</button>
+    <h2>${esc(st.title)}</h2>
+    <div class="hud"><span>ペア <b id="hd">0</b> / ${st.pairs.length}</span><span>まちがい <b id="hm">0</b></span><span>時間 <b id="ht">0:00</b></span></div>
+    <p class="muted" style="text-align:center">左の項目をクリックしてから、ペアになる右の項目をクリックしよう。</p>
+    <div class="match">
+      <div class="col">${L.map((x, i) => `<button class="mitem" data-side="L" data-i="${i}">${esc(x.t)}</button>`).join('')}</div>
+      <div></div>
+      <div class="col">${R.map((x, i) => `<button class="mitem" data-side="R" data-i="${i}">${esc(x.t)}</button>`).join('')}</div>
+    </div>
+    <div class="msg" id="msg"></div>`);
+  $('#bk').onclick = () => go('sortList');
+  const elapsed = startTimer($('#ht'));
+  $$('.mitem').forEach(el => el.onclick = () => {
+    if (el.disabled) return;
+    const side = el.dataset.side, item = (side === 'L' ? L : R)[+el.dataset.i];
+    if (!g.sel || g.sel.side === side) {
+      $$('.mitem.sel').forEach(x => x.classList.remove('sel'));
+      el.classList.add('sel');
+      g.sel = { side, item, el };
+      sfx('pop');
+      return;
+    }
+    const a = g.sel; g.sel = null;
+    a.el.classList.remove('sel');
+    if (a.item.k === item.k) {
+      sfx('ok');
+      g.done++;
+      [a.el, el].forEach(x => { x.classList.add('done'); x.disabled = true; x.style.background = colors[g.done % colors.length]; });
+      $('#hd').textContent = g.done;
+      $('#msg').className = 'msg ok'; $('#msg').textContent = `○ ${st.pairs[item.k][0]} ＝ ${st.pairs[item.k][1]}`;
+      if (g.done === st.pairs.length) {
+        const sec = elapsed();
+        const stars = g.miss === 0 ? 3 : g.miss <= 2 ? 2 : g.miss <= 4 ? 1 : 0;
+        const score = Math.max(0, st.pairs.length * 100 - g.miss * 40 + Math.max(0, Math.round(st.pairs.length * 10 - sec)) * 5);
+        save();
+        setTimeout(() => $('#hd') && sortFinish(idx, stars, score,
+          [`まちがい ${g.miss}回　時間 ${fmtSec(sec)}`, `スコア <b>${score}</b> 点`],
+          `<div class="explain" style="text-align:left"><b>ペアのまとめ</b><ul style="margin:6px 0 0">${st.pairs.map(p => `<li>${esc(p[0])} ― ${esc(p[1])}</li>`).join('')}</ul></div>`), 700);
+      }
+    } else {
+      sfx('ng');
+      g.miss++;
+      const lt = a.side === 'L' ? a.item : item;
+      addMiss('sort:' + st.id + ':' + st.pairs[lt.k][0], `【分類】${st.pairs[lt.k][0]} ― ${st.pairs[lt.k][1]}`);
+      $('#hm').textContent = g.miss;
+      [a.el, el].forEach(x => { x.classList.remove('shake'); void x.offsetWidth; x.classList.add('shake'); });
+      $('#msg').className = 'msg ng'; $('#msg').textContent = '✖ そのペアではないよ';
+    }
+  });
+};
+
+// =====================================================================
+//  研究員昇格試験（クイズ）
+// =====================================================================
+SCREENS.quizList = () => listScreen(`📝 ${ROOM_NAMES.quiz}`,
+  `1回の試験は${QUIZ_PER_PLAY}問（問題と選択肢は毎回入れかわります）。8割以上の正解で合格です。数字キー（1〜4）でも答えられます。`,
+  QUIZ_LEVELS.map(l => {
+    const r = S.quiz[l.lv];
+    const pct = r ? r.best / r.n : 0;
+    return { no: `Lv.${l.lv}　${l.name}`, title: l.theme, stars: !r ? 0 : pct === 1 ? 3 : pct >= .8 ? 2 : pct >= .6 ? 1 : 0,
+      sub: r ? `ベスト ${r.best}/${r.n}（${Math.round(pct * 100)}%）${pct >= .8 ? '・合格' : ''}` : `全${QUIZ.filter(q => q.lv === l.lv).length}問から出題` };
+  }),
+  i => go('quiz', QUIZ_LEVELS[i].lv));
+
+function isOX(c) { return c.length === 2 && c.includes('○') && c.includes('×'); }
+SCREENS.quiz = (lv) => {
+  const L = QUIZ_LEVELS.find(l => l.lv === lv);
+  const pool = shuffle(QUIZ.filter(q => q.lv === lv)).slice(0, QUIZ_PER_PLAY);
+  const g = { i: 0, ok: 0, wrongs: [], answered: false };
+  function show() {
+    const q = pool[g.i];
+    const ox = isOX(q.c);
+    const order = ox ? ['○', '×'].map(t => ({ t, ok: t === q.c[0] })) : shuffle(q.c.map((t, i) => ({ t, ok: i === 0 })));
+    g.answered = false;
+    view(`
+      <button class="back" id="bk">← 試験をやめる</button>
+      <div class="panel qcard">
+        <div class="row"><span class="tag">Lv.${lv} ${esc(L.name)}</span><span class="grow"></span><span class="muted">第 ${g.i + 1} 問 / ${pool.length}　正解 ${g.ok}</span></div>
+        <div class="progress" style="margin-top:8px"><i style="width:${g.i / pool.length * 100}%"></i></div>
+        <div class="qtext">${esc(q.q.replace(/^【○×】/, ''))}</div>
+        <div class="choices${ox ? ' ox' : ''}">${order.map((o, i) => `<button class="choice" data-i="${i}">${ox ? '' : `<span class="k">${i + 1}</span>`}${esc(o.t)}</button>`).join('')}</div>
+        <div id="qx"></div>
+      </div>`);
+    $('#bk').onclick = () => { if (confirm('試験をやめますか？（記録は残りません）')) go('quizList'); };
+    const btns = $$('.choice');
+    btns.forEach(b => b.onclick = () => answer(+b.dataset.i));
+    function answer(i) {
+      if (g.answered) return;
+      g.answered = true;
+      const o = order[i];
+      btns.forEach((b, j) => { b.disabled = true; if (order[j].ok) b.classList.add('correct'); });
+      if (o.ok) { g.ok++; sfx('ok'); }
+      else {
+        sfx('ng'); btns[i].classList.add('wrong');
+        g.wrongs.push(q);
+        addMiss('quiz:' + q.id, `【試験】${q.q}`);
+        save();
+      }
+      const last = g.i + 1 >= pool.length;
+      $('#qx').innerHTML = `<div class="explain"><b class="${o.ok ? 'ok' : 'ng'}">${o.ok ? '正解！' : `不正解… 正解は「${esc(q.c[0])}」`}</b><br>${esc(q.ex)}</div>
+        <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn coral" id="nx">${last ? '結果を見る' : '次の問題 →'}</button></div>`;
+      $('#nx').focus();
+      $('#nx').onclick = next;
+      onKey = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); next(); } };
+    }
+    onKey = e => { const n = +e.key; if (n >= 1 && n <= order.length) answer(n - 1); };
+  }
+  function next() {
+    g.i++;
+    if (g.i < pool.length) return show();
+    const pct = g.ok / pool.length;
+    const stars = pct === 1 ? 3 : pct >= .8 ? 2 : pct >= .6 ? 1 : 0;
+    if (pct >= .8) sfx('clear');
+    const gain = withXP(() => {
+      const old = S.quiz[lv];
+      if (!old || g.ok / pool.length > old.best / old.n) S.quiz[lv] = { best: g.ok, n: pool.length, plays: ((old && old.plays) || 0) + 1, last: g.ok };
+      else S.quiz[lv] = Object.assign({}, old, { plays: (old.plays || 0) + 1, last: g.ok });
+    });
+    const nextLv = QUIZ_LEVELS.find(l => l.lv === lv + 1);
+    resultScreen({
+      title: pct >= .8 ? `${L.name} 合格！` : `${L.name} 不合格… 8割で合格だよ`, stars, gain,
+      lines: [`正解 ${g.ok} / ${pool.length}（${Math.round(pct * 100)}%）`],
+      extra: g.wrongs.length ? `<div class="explain" style="text-align:left"><b>まちがえた問題の復習</b><ol style="margin:6px 0 0;padding-left:1.4em">${g.wrongs.map(q => `<li style="margin-bottom:6px">${esc(q.q)}<br><b class="ok">答：${esc(q.c[0])}</b>　<span class="muted">${esc(q.ex)}</span></li>`).join('')}</ol></div>` : '<p>🎉 全問正解！</p>',
+      retry: () => go('quiz', lv),
+      next: nextLv ? () => go('quiz', nextLv.lv) : null,
+      list: () => go('quizList'),
+    });
+  }
+  show();
+};
+
+// =====================================================================
+//  消化管探検ミッション
+// =====================================================================
+SCREENS.digestList = () => listScreen(`🫁 ${ROOM_NAMES.digest}`,
+  '食べ物に含まれる高分子が、口 → 胃 → 小腸 → 吸収 → 細胞 と進むあいだにどう変わるかを追いかけよう。各地点で、はたらく消化酵素やゆくえを選びます。',
+  DIGEST_STAGES.map((s, i) => ({ no: `MISSION ${i + 1}`, tag: s.icon + ' ' + s.food, title: s.title, stars: (S.digest[s.id] || {}).stars || 0 })),
+  i => go('digest', i));
+
+const TRACT_NODES = {
+  mouth:    { x: 110, y: 10,  w: 120, t: '口', s: 'だ液' },
+  stomach:  { x: 110, y: 90,  w: 120, t: '胃', s: '胃液（強い酸性）' },
+  small:    { x: 110, y: 170, w: 120, t: '小腸', s: '十二指腸・小腸の壁' },
+  pancreas: { x: 0,   y: 170, w: 92,  t: 'すい臓', s: 'すい液' },
+  gall:     { x: 248, y: 170, w: 92,  t: '肝臓・胆のう', s: '胆汁' },
+  villi:    { x: 110, y: 250, w: 120, t: '柔毛', s: '吸収' },
+  blood:    { x: 20,  y: 330, w: 140, t: '毛細血管', s: '→ 門脈' },
+  lymph:    { x: 180, y: 330, w: 140, t: 'リンパ管', s: '→ 静脈と合流' },
+  liver:    { x: 20,  y: 410, w: 140, t: '肝臓', s: '貯蔵・解毒' },
+  cell:     { x: 180, y: 410, w: 140, t: '全身の細胞', s: '呼吸・合成' },
+};
+function tractSvg(on, visited) {
+  const N = TRACT_NODES, H = 52;
+  const c = (k, side) => { const n = N[k]; return side === 'b' ? [n.x + n.w / 2, n.y + H] : side === 't' ? [n.x + n.w / 2, n.y] : side === 'l' ? [n.x, n.y + H / 2] : [n.x + n.w, n.y + H / 2]; };
+  const ar = (a, b) => `<line class="arrow" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1] - (b[1] > a[1] ? 4 : 0)}"/>`;
+  let s = `<svg viewBox="-4 0 348 472" role="img" aria-label="消化管の模式図"><defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#8fb3ae"/></marker></defs>`;
+  s += ar(c('mouth', 'b'), c('stomach', 't')) + ar(c('stomach', 'b'), c('small', 't')) + ar(c('small', 'b'), c('villi', 't'));
+  s += `<line class="arrow" x1="${N.pancreas.x + N.pancreas.w}" y1="${N.pancreas.y + 26}" x2="${N.small.x - 3}" y2="${N.small.y + 26}"/>`;
+  s += `<line class="arrow" x1="${N.gall.x}" y1="${N.gall.y + 26}" x2="${N.small.x + N.small.w + 3}" y2="${N.small.y + 26}"/>`;
+  s += ar([N.villi.x + 30, N.villi.y + H], c('blood', 't')) + ar([N.villi.x + N.villi.w - 30, N.villi.y + H], c('lymph', 't'));
+  s += ar(c('blood', 'b'), c('liver', 't')) + ar(c('lymph', 'b'), c('cell', 't'));
+  s += `<line class="arrow" x1="${N.liver.x + N.liver.w}" y1="${N.liver.y + 26}" x2="${N.cell.x - 3}" y2="${N.cell.y + 26}"/>`;
+  for (const k in N) {
+    const n = N[k];
+    s += `<g class="node${on.includes(k) ? ' on' : visited.includes(k) ? ' done' : ''}"><rect x="${n.x}" y="${n.y}" width="${n.w}" height="${H}" rx="12"/><text x="${n.x + n.w / 2}" y="${n.y + 23}" text-anchor="middle">${n.t}</text><text class="s" x="${n.x + n.w / 2}" y="${n.y + 41}" text-anchor="middle">${n.s}</text></g>`;
+  }
+  return s + '</svg>';
+}
+
+SCREENS.digest = (idx) => {
+  const st = DIGEST_STAGES[idx];
+  const g = { step: 0, mols: st.start, mistakes: 0, visited: [] };
+  function show() {
+    const sp = st.steps[g.step];
+    const order = shuffle(sp.c.map((t, i) => ({ t, ok: i === 0 })));
+    let tried = 0;
+    view(`
+      <button class="back" id="bk">← ミッション一覧</button>
+      <div class="row"><h2 class="grow">${st.icon} ${esc(st.title)}</h2><span class="muted">地点 ${g.step + 1} / ${st.steps.length}　まちがい ${g.mistakes}</span></div>
+      <div class="dig">
+        <div class="panel tract">${tractSvg(sp.at, g.visited)}</div>
+        <div>
+          <div class="molbox" id="mb">${g.mols.map(molHtml).join('')}</div>
+          <div class="panel" style="margin-top:14px">
+            <div class="qtext" style="margin-top:0">📍 ${esc(TRACT_NODES[sp.at[0]].t)}：${esc(sp.q)}</div>
+            <div class="choices">${order.map((o, i) => `<button class="choice" data-i="${i}"><span class="k">${i + 1}</span>${esc(o.t)}</button>`).join('')}</div>
+            <div id="qx"></div>
+          </div>
+        </div>
+      </div>`);
+    $('#bk').onclick = () => go('digestList');
+    const btns = $$('.choice');
+    function answer(i) {
+      const o = order[i];
+      if (btns[i].disabled) return;
+      if (!o.ok) {
+        tried++; g.mistakes++;
+        sfx('ng');
+        btns[i].classList.add('wrong'); btns[i].disabled = true;
+        addMiss('digest:' + st.id + ':' + g.step, `【消化】${st.title}／${TRACT_NODES[sp.at[0]].t}：${sp.q}`);
+        save();
+        $('#qx').innerHTML = `<div class="explain"><b class="ng">ちがうよ。</b> ${tried >= 2 ? 'ヒント：その場所で出される消化液や、物質の性質を思い出そう。' : 'もう一度考えてみよう。'}</div>`;
+        return;
+      }
+      sfx('ok');
+      btns.forEach(b => b.disabled = true);
+      btns[i].classList.add('correct');
+      g.visited.push(...sp.at);
+      animate(sp, () => {
+        if (sp.after) g.mols = sp.after;
+        $('#mb').innerHTML = g.mols.map(molHtml).join('');
+        $$('#mb .mw').forEach(m => m.classList.add('popin'));
+        if (sp.fx === 'absorb') {
+          const dest = sp.at.includes('lymph') ? 'リンパ管へ' : '毛細血管へ';
+          $$('#mb .mw').forEach(m => m.insertAdjacentHTML('beforeend', `<span class="dest">→ ${dest}</span>`));
+        }
+      });
+      const last = g.step + 1 >= st.steps.length;
+      $('#qx').innerHTML = `<div class="explain"><b class="ok">正解！</b> ${esc(sp.ex)}</div>
+        <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn coral" id="nx">${last ? 'ミッション完了！' : '次の地点へ →'}</button></div>`;
+      $('#nx').onclick = next;
+      onKey = e => { if (e.key === 'Enter') next(); };
+    }
+    btns.forEach(b => b.onclick = () => answer(+b.dataset.i));
+    onKey = e => { const n = +e.key; if (n >= 1 && n <= order.length) answer(n - 1); };
+  }
+  function animate(sp, then) {
+    const mb = $('#mb');
+    if (sp.fx === 'hydro') {
+      const bonds = $$('.bond', mb).slice(0, 10);
+      spawnBubbles(mb, bonds.length ? bonds : [mb], 'H₂O', 'in');
+      setTimeout(then, 800);
+    } else if (sp.fx === 'emulsify') {
+      let h = '<div class="emul">';
+      for (let i = 0; i < 18; i++) {
+        const a = Math.random() * Math.PI * 2, d = 60 + Math.random() * 120;
+        h += `<i style="left:50%;top:50%;--dx:${Math.cos(a) * d}px;--dy:${Math.sin(a) * d * .6}px;animation-delay:${i * 0.03}s"></i>`;
+      }
+      mb.insertAdjacentHTML('beforeend', h + '</div>');
+      mb.insertAdjacentHTML('beforeend', '<div class="bubble" style="left:50%;top:20px">乳化！ 細かい粒に</div>');
+      setTimeout(then, 1400);
+    } else if (sp.fx === 'absorb') {
+      $$('.mw', mb).forEach(m => m.classList.add('slide-out'));
+      setTimeout(then, 900);
+    } else if (sp.fx === 'build') {
+      spawnBubbles(mb, [mb], '合成！');
+      setTimeout(then, 500);
+    } else then();
+  }
+  function next() {
+    g.step++;
+    if (g.step < st.steps.length) return show();
+    const stars = starsByMistakes(g.mistakes);
+    sfx('clear');
+    const gain = withXP(() => {
+      const old = S.digest[st.id];
+      S.digest[st.id] = { stars: Math.max(stars, old ? old.stars : 0), plays: ((old && old.plays) || 0) + 1, lastMistakes: g.mistakes };
+    });
+    resultScreen({
+      title: `ミッション「${st.title}」完了！`, stars, gain,
+      lines: [`まちがい：${g.mistakes}回`],
+      extra: `<div class="explain" style="text-align:left"><b>旅のまとめ</b><ol style="margin:6px 0 0;padding-left:1.4em">${st.steps.map(s => `<li>${esc(TRACT_NODES[s.at[0]].t)}：${esc(s.c[0])}</li>`).join('')}</ol></div>`,
+      retry: () => go('digest', idx),
+      next: idx + 1 < DIGEST_STAGES.length ? () => go('digest', idx + 1) : null,
+      list: () => go('digestList'),
+    });
+  }
+  show();
+};
+
+// =====================================================================
+//  分子図鑑
+// =====================================================================
+const ZUKAN = [
+  { id: 'react', title: '脱水縮合と加水分解', fig: `
+<svg viewBox="0 0 620 200" width="620">
+  <g font-size="22" font-weight="700" text-anchor="middle">
+    <rect x="20" y="40" width="70" height="44" rx="10" fill="#f2b632"/><text x="55" y="70">A</text>
+    <text x="118" y="70" fill="#e76f51">–OH</text>
+    <text x="165" y="70">＋</text>
+    <text x="212" y="70" fill="#e76f51">HO–</text>
+    <rect x="240" y="40" width="70" height="44" rx="10" fill="#7cc47f"/><text x="275" y="70">B</text>
+    <rect x="380" y="40" width="70" height="44" rx="10" fill="#f2b632"/><text x="415" y="70">A</text>
+    <text x="478" y="70" fill="#e76f51">–O–</text>
+    <rect x="506" y="40" width="70" height="44" rx="10" fill="#7cc47f"/><text x="541" y="70">B</text>
+    <text x="478" y="130" fill="#0a6fb5">＋ H₂O</text>
+  </g>
+  <g font-size="15" font-weight="700">
+    <line x1="322" y1="54" x2="368" y2="54" stroke="#15323a" stroke-width="3" marker-end="url(#zah)"/>
+    <line x1="368" y1="76" x2="322" y2="76" stroke="#15323a" stroke-width="3" marker-end="url(#zah)"/>
+    <text x="345" y="40" text-anchor="middle" fill="#0d8a8c">脱水縮合</text>
+    <text x="345" y="100" text-anchor="middle" fill="#e76f51">加水分解</text>
+  </g>
+  <defs><marker id="zah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#15323a"/></marker></defs>
+  <text x="310" y="180" font-size="14" text-anchor="middle" fill="#4b6870">–OH と –H（HO– の H）から水が取れて、–O– でつながる</text>
+</svg>`, cap: '単量体どうしは「脱水縮合」でつながり、「加水分解」で分かれる',
+    points: ['高分子は、単量体が脱水縮合で多数つながったもの。', 'n個の単量体を一列につなぐと、水は(n−1)分子取れる。', '消化は、消化酵素による加水分解の反応。'] },
+  { id: 'sugar', title: '糖類（炭水化物）', fig: `
+<svg viewBox="0 0 320 200" width="320">
+  <polygon points="120,50 190,50 225,100 190,150 120,150 85,100" fill="#fff3cf" stroke="#c48a00" stroke-width="3"/>
+  <circle cx="190" cy="50" r="13" fill="#fff" stroke="#c48a00" stroke-width="2"/><text x="190" y="56" text-anchor="middle" font-size="16" font-weight="700" fill="#c0392b">O</text>
+  <g stroke="#15323a" stroke-width="2.5"><line x1="225" y1="100" x2="260" y2="100"/><line x1="190" y1="150" x2="205" y2="178"/><line x1="120" y1="150" x2="105" y2="178"/><line x1="85" y1="100" x2="50" y2="100"/><line x1="120" y1="50" x2="105" y2="24"/></g>
+  <g font-size="16" font-weight="700" fill="#e76f51"><text x="263" y="106">OH</text><text x="200" y="196">OH</text><text x="80" y="196">HO</text><text x="20" y="106">HO</text><text x="78" y="18" fill="#15323a">CH₂OH</text></g>
+  <text x="155" y="108" text-anchor="middle" font-size="18" font-weight="800" fill="#7a5600">グルコース</text>
+  <text x="155" y="130" text-anchor="middle" font-size="14" fill="#4b6870">C₆H₁₂O₆</text>
+</svg>`, cap: 'グルコースの簡略図（環の角にある炭素Cと、水素Hの一部は省略。立体の向きも省略）',
+    table: [['種類', '例', 'できているもの'], ['単糖', 'グルコース・フルクトース・ガラクトース', '―'], ['二糖', 'マルトース', 'グルコース＋グルコース'], ['', 'スクロース', 'グルコース＋フルクトース'], ['', 'ラクトース', 'グルコース＋ガラクトース'], ['多糖', 'デンプン・グリコーゲン・セルロース', 'グルコースが多数']],
+    points: ['構成元素は C・H・O。', '–OH（ヒドロキシ基）を多くもち、–OH どうしから水が取れてつながる（グリコシド結合）。', 'デンプン（植物の貯蔵）・グリコーゲン（動物の貯蔵）・セルロース（細胞壁）は、どれもグルコースからできている。'] },
+  { id: 'protein', title: 'タンパク質', fig: `
+<svg viewBox="0 0 560 220" width="560">
+  <g font-size="22" font-weight="700" text-anchor="middle">
+    <text x="150" y="40">H</text><line x1="150" y1="48" x2="150" y2="70" stroke="#15323a" stroke-width="2.5"/>
+    <text x="60" y="100" fill="#3a86d6">H₂N</text><line x1="88" y1="93" x2="136" y2="93" stroke="#15323a" stroke-width="2.5"/>
+    <text x="150" y="100">C</text>
+    <line x1="164" y1="93" x2="208" y2="93" stroke="#15323a" stroke-width="2.5"/><text x="246" y="100" fill="#e76f51">COOH</text>
+    <line x1="150" y1="108" x2="150" y2="132" stroke="#15323a" stroke-width="2.5"/><text x="150" y="156" fill="#2a9d5c">R</text>
+  </g>
+  <g font-size="13" font-weight="700" text-anchor="middle"><text x="60" y="124" fill="#3a86d6">アミノ基</text><text x="246" y="124" fill="#e76f51">カルボキシ基</text><text x="150" y="178" fill="#2a9d5c">側鎖（アミノ酸ごとにちがう）</text></g>
+  <g font-size="18" font-weight="700">
+    <text x="330" y="70">…–C–<tspan fill="#e76f51">OH</tspan> ＋ <tspan fill="#3a86d6">H</tspan>–N–…</text>
+    <text x="350" y="130">…–<tspan fill="#c0392b">CO–NH</tspan>–… ＋ <tspan fill="#0a6fb5">H₂O</tspan></text>
+  </g>
+  <line x1="420" y1="82" x2="420" y2="108" stroke="#15323a" stroke-width="2.5" marker-end="url(#zah2)"/>
+  <text x="438" y="100" font-size="13" fill="#0d8a8c" font-weight="700">脱水縮合</text>
+  <text x="420" y="160" font-size="14" text-anchor="middle" font-weight="700" fill="#c0392b">ペプチド結合</text>
+  <defs><marker id="zah2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#15323a"/></marker></defs>
+</svg>`, cap: '左：アミノ酸の基本の形　右：ペプチド結合ができるようす',
+    table: [['構造', '内容', 'キーワード'], ['一次構造', 'アミノ酸の配列順序', 'ペプチド結合'], ['二次構造', '部分的ならせん・シート', 'αヘリックス・βシート／水素結合'], ['三次構造', '1本のポリペプチド全体の立体構造', 'S−S結合など'], ['四次構造', '複数のポリペプチドの集合', 'サブユニット（例：ヘモグロビン）']],
+    points: ['構成元素は C・H・O・N（Sを含むものもある）。', '20種類のアミノ酸の並び方で、多様なタンパク質ができる。', '熱や酸などで立体構造が変わる＝変性。酵素がはたらきを失う＝失活。'] },
+  { id: 'lipid', title: '脂質（脂肪・リン脂質）', fig: `
+<svg viewBox="0 0 460 210" width="460">
+  <rect x="20" y="20" width="110" height="170" rx="12" fill="#f3e3d2" stroke="#c9a27a" stroke-width="2"/>
+  <rect x="250" y="20" width="190" height="170" rx="12" fill="#fbf1d6" stroke="#e9c46a" stroke-width="2"/>
+  <g font-size="20" font-weight="700" font-family="inherit">
+    <text x="40" y="60">CH₂</text><text x="40" y="112">CH</text><text x="40" y="164">CH₂</text>
+    <text x="128" y="60" fill="#c0392b">–O–CO–</text><text x="128" y="112" fill="#c0392b">–O–CO–</text><text x="128" y="164" fill="#c0392b">–O–CO–</text>
+    <text x="262" y="60">R（長い鎖）</text><text x="262" y="112">R（長い鎖）</text><text x="262" y="164">R（長い鎖）</text>
+  </g>
+  <g stroke="#15323a" stroke-width="2"><line x1="58" y1="68" x2="58" y2="92"/><line x1="58" y1="120" x2="58" y2="144"/></g>
+  <g font-size="13" font-weight="700" text-anchor="middle"><text x="75" y="206" fill="#8a6640">グリセリン部分</text><text x="190" y="206" fill="#c0392b">エステル結合</text><text x="345" y="206" fill="#a07a14">脂肪酸部分</text></g>
+</svg>`, cap: '脂肪（中性脂肪）の簡略図：グリセリン1分子＋脂肪酸3分子',
+    points: ['脂肪はグリセリン1分子に脂肪酸3分子がエステル結合したもの（水は3分子取れる）。', '脂肪は高分子ではない。水に溶けにくい。1gあたりのエネルギーが大きく、貯蔵に向く。', 'リン脂質は細胞膜の主な成分。二重の層（脂質二重層）をつくる。'] },
+  { id: 'nucleic', title: '核酸（DNA・RNA）', fig: `
+<svg viewBox="0 0 560 230" width="560">
+  <circle cx="45" cy="70" r="24" fill="#a99bd6"/><text x="45" y="77" text-anchor="middle" font-size="20" font-weight="800">P</text>
+  <line x1="69" y1="70" x2="95" y2="70" stroke="#15323a" stroke-width="3"/>
+  <polygon points="125,40 157,62 145,100 105,100 93,62" fill="#3fb3a3"/><text x="125" y="80" text-anchor="middle" font-size="16" font-weight="800">糖</text>
+  <line x1="157" y1="70" x2="183" y2="70" stroke="#15323a" stroke-width="3"/>
+  <rect x="183" y="48" width="50" height="46" rx="8" fill="#d94b5f"/><text x="208" y="78" text-anchor="middle" font-size="16" font-weight="800" fill="#fff">塩基</text>
+  <g font-size="13" font-weight="700" text-anchor="middle" fill="#4b6870"><text x="45" y="118">リン酸</text><text x="125" y="118">糖</text><text x="208" y="118">塩基</text></g>
+  <text x="140" y="150" text-anchor="middle" font-size="15" font-weight="800">ヌクレオチド</text>
+  <g font-size="18" font-weight="800" text-anchor="middle">
+    <line x1="330" y1="20" x2="330" y2="210" stroke="#3fb3a3" stroke-width="8"/><line x1="530" y1="20" x2="530" y2="210" stroke="#3fb3a3" stroke-width="8"/>
+    <rect x="340" y="28" width="50" height="32" rx="6" fill="#d94b5f"/><text x="365" y="51" fill="#fff">A</text><rect x="470" y="28" width="50" height="32" rx="6" fill="#3a86d6"/><text x="495" y="51" fill="#fff">T</text>
+    <rect x="340" y="75" width="50" height="32" rx="6" fill="#2a9d5c"/><text x="365" y="98" fill="#fff">G</text><rect x="470" y="75" width="50" height="32" rx="6" fill="#d98a12"/><text x="495" y="98" fill="#fff">C</text>
+    <rect x="340" y="122" width="50" height="32" rx="6" fill="#3a86d6"/><text x="365" y="145" fill="#fff">T</text><rect x="470" y="122" width="50" height="32" rx="6" fill="#d94b5f"/><text x="495" y="145" fill="#fff">A</text>
+    <rect x="340" y="169" width="50" height="32" rx="6" fill="#d98a12"/><text x="365" y="192" fill="#fff">C</text><rect x="470" y="169" width="50" height="32" rx="6" fill="#2a9d5c"/><text x="495" y="192" fill="#fff">G</text>
+  </g>
+  <g stroke="#15323a" stroke-width="2" stroke-dasharray="4 4">
+    <line x1="394" y1="38" x2="466" y2="38"/><line x1="394" y1="50" x2="466" y2="50"/>
+    <line x1="394" y1="82" x2="466" y2="82"/><line x1="394" y1="91" x2="466" y2="91"/><line x1="394" y1="100" x2="466" y2="100"/>
+    <line x1="394" y1="132" x2="466" y2="132"/><line x1="394" y1="144" x2="466" y2="144"/>
+    <line x1="394" y1="176" x2="466" y2="176"/><line x1="394" y1="185" x2="466" y2="185"/><line x1="394" y1="194" x2="466" y2="194"/>
+  </g>
+  <text x="430" y="226" text-anchor="middle" font-size="13" font-weight="700" fill="#4b6870">点線＝水素結合（A–T 2本、G–C 3本）</text>
+</svg>`, cap: '左：ヌクレオチド　右：DNAの2本鎖（ねじれは省略）',
+    table: [['', 'DNA', 'RNA'], ['糖', 'デオキシリボース', 'リボース'], ['塩基', 'A・T・G・C', 'A・U・G・C'], ['鎖', 'ふつう二本鎖（二重らせん）', 'ふつう一本鎖'], ['はたらき', '遺伝子の本体', '遺伝情報を写し取り、タンパク質合成にはたらく']],
+    points: ['構成元素は C・H・O・N・P。', 'ヌクレオチドは、糖とリン酸の間で結合して長い鎖になる。', 'DNAでは A–T、G–C が対になる（相補性）。そのため A＝T、G＝C の割合になる。'] },
+  { id: 'atp', title: 'ATP（エネルギーの通貨）', fig: `
+<svg viewBox="0 0 560 170" width="560">
+  <rect x="20" y="40" width="80" height="54" rx="8" fill="#d94b5f"/><text x="60" y="73" text-anchor="middle" font-size="15" font-weight="800" fill="#fff">アデニン</text>
+  <line x1="100" y1="67" x2="130" y2="67" stroke="#15323a" stroke-width="3"/>
+  <polygon points="165,32 200,58 187,100 143,100 130,58" fill="#7cc47f"/><text x="165" y="77" text-anchor="middle" font-size="14" font-weight="800">リボース</text>
+  <line x1="200" y1="67" x2="236" y2="67" stroke="#15323a" stroke-width="3"/>
+  <g font-size="20" font-weight="800" text-anchor="middle">
+    <circle cx="262" cy="67" r="26" fill="#a99bd6"/><text x="262" y="74">P</text>
+    <text x="313" y="76" fill="#c0392b" font-size="28">〜</text>
+    <circle cx="364" cy="67" r="26" fill="#a99bd6"/><text x="364" y="74">P</text>
+    <text x="415" y="76" fill="#c0392b" font-size="28">〜</text>
+    <circle cx="466" cy="67" r="26" fill="#a99bd6"/><text x="466" y="74">P</text>
+  </g>
+  <text x="364" y="130" text-anchor="middle" font-size="14" font-weight="700" fill="#c0392b">〜：高エネルギーリン酸結合</text>
+  <text x="110" y="130" text-anchor="middle" font-size="14" font-weight="700" fill="#4b6870">アデノシン</text>
+  <path d="M20 108 H200" stroke="#4b6870" stroke-width="2"/>
+  <text x="280" y="160" text-anchor="middle" font-size="14" fill="#4b6870">ATP → ADP ＋ リン酸 ＋ エネルギー</text>
+</svg>`, cap: 'ATP（アデノシン三リン酸）の簡略図',
+    points: ['アデニン（塩基）＋リボース（糖）＋リン酸3つ。', '末端のリン酸が離れて ADP になるとき、エネルギーを放出する。', '呼吸で取り出したエネルギーで、ADPとリン酸から ATP が合成される。'] },
+  { id: 'enzyme', title: '消化酵素のまとめ', fig: '',
+    table: [['消化液（つくる場所）', '消化酵素', 'はたらく相手 → できるもの', '最適pH'], ['だ液（だ液腺）', 'アミラーゼ', 'デンプン → マルトース', '7付近'], ['胃液（胃）', 'ペプシン', 'タンパク質 → ペプチド', '2付近'], ['すい液（すい臓）', 'アミラーゼ', 'デンプン → マルトース', '7付近'], ['', 'トリプシン', 'ペプチド → より短いペプチド', '8付近'], ['', 'リパーゼ', '脂肪 → 脂肪酸＋モノグリセリド', '7付近'], ['小腸の壁', 'マルターゼ', 'マルトース → グルコース', ''], ['', 'ペプチダーゼ', 'ペプチド → アミノ酸', ''], ['胆汁（肝臓でつくり胆のうに蓄える）', '（消化酵素を含まない）', '脂肪を乳化して消化を助ける', '']],
+    points: ['グルコース・アミノ酸 → 柔毛の毛細血管 → 門脈 → 肝臓。', '脂肪酸・モノグリセリド → 柔毛で脂肪にもどる → リンパ管。', '酵素は特定の基質にだけはたらく（基質特異性）。最適温度・最適pHがある。'] },
+];
+SCREENS.zukan = (sel = 0) => {
+  const z = ZUKAN[sel];
+  view(`
+    <button class="back" id="bk">← ホームへ</button>
+    <h2>📖 分子図鑑</h2>
+    <div class="zk">
+      <nav>${ZUKAN.map((e, i) => `<button data-i="${i}" aria-current="${i === sel}">${esc(e.title)}</button>`).join('')}</nav>
+      <article class="panel">
+        <h3 style="font-size:22px">${esc(z.title)}</h3>
+        ${z.fig ? `<div class="fig">${z.fig}<div class="cap">${esc(z.cap)}</div></div>` : ''}
+        ${z.table ? `<table class="t"><thead><tr>${z.table[0].map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${z.table.slice(1).map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>` : ''}
+        <h4 style="margin:14px 0 4px">ポイント</h4>
+        <ul class="points">${z.points.map(p => `<li>${esc(p)}</li>`).join('')}</ul>
+      </article>
+    </div>`);
+  $('#bk').onclick = () => go('home');
+  $$('.zk nav button').forEach(b => b.onclick = () => go('zukan', +b.dataset.i));
+};
+
+// =====================================================================
+//  学習記録カード
+// =====================================================================
+function fnv(str) { let h = 0x811c9dc5; for (const ch of str) { h ^= ch.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0; } return h >>> 0; }
+function checkCode(body) {
+  const a = fnv('KBLAB|' + body).toString(16).padStart(8, '0');
+  const b = fnv(body + '|2026').toString(16).padStart(8, '0');
+  return (a.slice(0, 4) + '-' + b.slice(0, 4)).toUpperCase();
+}
+function normBody(text) { return text.replace(/\r/g, '').split('\n').map(l => l.trimEnd()).join('\n').trim(); }
+function badges() {
+  const allBuild = BUILD_STAGES.every(s => S.build[s.id]);
+  const allSort = SORT_STAGES.every(s => (S.sort[s.id] || {}).stars > 0);
+  const allQuiz = QUIZ_LEVELS.every(l => S.quiz[l.lv] && S.quiz[l.lv].best / S.quiz[l.lv].n >= .8);
+  const allDig = DIGEST_STAGES.every(s => S.digest[s.id]);
+  const perfect = [...Object.values(S.build), ...Object.values(S.sort), ...Object.values(S.digest)].filter(r => r.stars === 3).length;
+  return [
+    { n: '🧪 合成マスター', on: allBuild, d: '合成ルームの全ステージをクリア' },
+    { n: '🗂️ 分類マスター', on: allSort, d: '分類ラボの全ステージをクリア' },
+    { n: '📝 試験全合格', on: allQuiz, d: '昇格試験のすべてのレベルに合格' },
+    { n: '🫁 消化の達人', on: allDig, d: '消化管探検ミッションをすべて完了' },
+    { n: '⭐ パーフェクト10', on: perfect >= 10, d: '★3つを10ステージで獲得' },
+    { n: '🎓 博士号', on: rankOf(calcXP()).r.name === '博士', d: '称号「博士」に到達' },
+  ];
+}
+function recordText() {
+  const p = S.profile || { cls: '', no: '', name: '' };
+  const x = calcXP();
+  const lines = [];
+  lines.push('【高分子ラボ 学習記録】');
+  lines.push(`${p.cls} ${p.no}番 ${p.name}`);
+  lines.push(`作成日時：${fmtDate(new Date())}`);
+  lines.push(`称号：${rankOf(x).r.name}（XP ${x}）`);
+  const bStars = BUILD_STAGES.reduce((a, s) => a + ((S.build[s.id] || {}).stars || 0), 0);
+  lines.push(`■合成ルーム：${BUILD_STAGES.filter(s => S.build[s.id]).length}/${BUILD_STAGES.length}クリア ★${bStars}/${BUILD_STAGES.length * 3}`);
+  const soStars = SORT_STAGES.reduce((a, s) => a + ((S.sort[s.id] || {}).stars || 0), 0);
+  lines.push(`■分類ラボ：${SORT_STAGES.filter(s => (S.sort[s.id] || {}).stars > 0).length}/${SORT_STAGES.length}クリア ★${soStars}/${SORT_STAGES.length * 3}`);
+  lines.push('■昇格試験：' + QUIZ_LEVELS.map(l => { const r = S.quiz[l.lv]; return `Lv${l.lv} ${r ? Math.round(r.best / r.n * 100) + '%' : '―'}`; }).join(' / '));
+  const dStars = DIGEST_STAGES.reduce((a, s) => a + ((S.digest[s.id] || {}).stars || 0), 0);
+  lines.push(`■消化管探検：${DIGEST_STAGES.filter(s => S.digest[s.id]).length}/${DIGEST_STAGES.length}完了 ★${dStars}/${DIGEST_STAGES.length * 3}`);
+  const b = badges().filter(x => x.on).map(x => x.n.replace(/^\S+\s/, ''));
+  lines.push('■バッジ：' + (b.length ? b.join('、') : 'なし'));
+  const miss = Object.values(S.miss).sort((a, b) => b.n - a.n).slice(0, 5);
+  lines.push('■まちがいが多かった内容：');
+  if (miss.length) miss.forEach(m => lines.push(`・(${m.n}回) ${m.t}`));
+  else lines.push('・なし');
+  const body = normBody(lines.join('\n'));
+  return { body, code: checkCode(body) };
+}
+SCREENS.record = () => {
+  const p = S.profile || { cls: '', no: '', name: '' };
+  const x = calcXP();
+  const { body, code } = recordText();
+  const fullText = body + '\n確認コード：' + code;
+  const row = (name, done, total, extra) => `<tr><th>${name}</th><td>${done} / ${total}</td><td>${extra}</td></tr>`;
+  const miss = Object.values(S.miss).sort((a, b) => b.n - a.n).slice(0, 5);
+  view(`
+    <button class="back noprint" id="bk">← ホームへ</button>
+    <div class="card-record">
+      <div class="top"><div><div style="font-size:13px;opacity:.85">高分子ラボ 学習記録カード</div><div style="font-size:22px;font-weight:800">${esc(p.cls)} ${esc(p.no)}番　${esc(p.name)}</div></div>
+        <div style="text-align:right"><div class="rank" style="background:var(--gold);color:#3a2a00;border-radius:999px;padding:2px 12px;font-weight:800;display:inline-block">${esc(rankOf(x).r.name)}</div><div>XP ${x}</div></div></div>
+      <div class="body">
+        <table class="t">
+          <thead><tr><th>部屋</th><th>クリア</th><th>内容</th></tr></thead>
+          <tbody>
+            ${row('🧪 合成ルーム', BUILD_STAGES.filter(s => S.build[s.id]).length, BUILD_STAGES.length, BUILD_STAGES.map((s, i) => `${i + 1}${starsHtml((S.build[s.id] || {}).stars || 0)}`).join(' '))}
+            ${row('🗂️ 分類ラボ', SORT_STAGES.filter(s => (S.sort[s.id] || {}).stars > 0).length, SORT_STAGES.length, SORT_STAGES.map((s, i) => `${i + 1}${starsHtml((S.sort[s.id] || {}).stars || 0)}`).join(' '))}
+            ${row('📝 昇格試験', QUIZ_LEVELS.filter(l => S.quiz[l.lv] && S.quiz[l.lv].best / S.quiz[l.lv].n >= .8).length, QUIZ_LEVELS.length, QUIZ_LEVELS.map(l => { const r = S.quiz[l.lv]; return `Lv${l.lv}：${r ? Math.round(r.best / r.n * 100) + '%' : '―'}`; }).join('　'))}
+            ${row('🫁 消化管探検', DIGEST_STAGES.filter(s => S.digest[s.id]).length, DIGEST_STAGES.length, DIGEST_STAGES.map(s => `${esc(s.title)}${starsHtml((S.digest[s.id] || {}).stars || 0)}`).join(' '))}
+          </tbody>
+        </table>
+        <h4 style="margin:12px 0 6px">バッジ</h4>
+        <div class="badges">${badges().map(b => `<span class="badge${b.on ? '' : ' off'}" title="${esc(b.d)}">${esc(b.n)}</span>`).join('')}</div>
+        <h4 style="margin:14px 0 6px">まちがいが多かった内容（復習しよう）</h4>
+        ${miss.length ? `<ol style="margin:0;padding-left:1.4em">${miss.map(m => `<li>${esc(m.t)} <span class="muted">（${m.n}回）</span></li>`).join('')}</ol>` : '<p class="muted" style="margin:0">まだありません</p>'}
+        <div class="row" style="margin-top:14px;border-top:1px dashed var(--line);padding-top:10px">
+          <span class="muted grow">作成日時：${esc(body.split('\n')[2].replace('作成日時：', ''))}</span>
+          <span>確認コード <span class="code">${code}</span></span>
+        </div>
+      </div>
+    </div>
+    <div class="panel noprint" style="max-width:760px;margin:16px auto 0">
+      <h3>提出のしかた</h3>
+      <ol style="margin:0 0 10px;padding-left:1.4em">
+        <li><b>画面の撮影</b>：このカードのスクリーンショットを撮って提出（Chromebookは <kbd>Ctrl</kbd>＋<kbd>Shift</kbd>＋<kbd>ウィンドウを表示</kbd> キーで範囲を選んで撮影）</li>
+        <li><b>文字で提出</b>：下の「記録をコピー」を押して、Google Classroom や Google フォームに貼り付け</li>
+      </ol>
+      <textarea class="copy" id="rt" readonly>${esc(fullText)}</textarea>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="cp">📋 記録をコピー</button>
+        <button class="btn sub" id="ed">名前を変更</button>
+        <span class="grow"></span>
+        <button class="btn sub small" id="rs">記録をすべて消す</button>
+      </div>
+    </div>
+    <details class="teacher noprint">
+      <summary>先生用：提出された記録の確認</summary>
+      <div class="panel" style="margin-top:8px">
+        <p class="note" style="margin-top:0">生徒が「記録をコピー」で提出した文章を、下に貼り付けて「確認」を押してください。文章が書きかえられていないかを確認コードで照合します。<br>※簡易的なチェックです。改ざんを完全に防ぐものではありません。</p>
+        <textarea class="copy" id="vt" placeholder="ここに提出された記録を貼り付け"></textarea>
+        <div class="row" style="margin-top:8px"><button class="btn" id="vb">確認</button><span id="vr" style="font-weight:800"></span></div>
+      </div>
+    </details>`);
+  $('#bk').onclick = () => go('home');
+  $('#ed').onclick = () => profileModal(false);
+  $('#cp').onclick = async () => {
+    try { await navigator.clipboard.writeText(fullText); toast('コピーしました。Classroom などに貼り付けてね'); }
+    catch (e) { const t = $('#rt'); t.select(); document.execCommand('copy'); toast('コピーしました'); }
+  };
+  $('#rs').onclick = () => {
+    if (!confirm('この端末に保存された学習記録をすべて消します。元に戻せません。よろしいですか？')) return;
+    if (!confirm('本当に消しますか？')) return;
+    S = blank(); save(); renderHeader(); profileModal(true);
+  };
+  $('#vb').onclick = () => {
+    const t = $('#vt').value.replace(/\r/g, '');
+    const m = t.match(/\n?確認コード：\s*([0-9A-F]{4}-[0-9A-F]{4})\s*$/i);
+    const vr = $('#vr');
+    if (!m) { vr.style.color = 'var(--ng)'; vr.textContent = '確認コードの行が見つかりません'; return; }
+    const ok = checkCode(normBody(t.slice(0, m.index))) === m[1].toUpperCase();
+    vr.style.color = ok ? 'var(--ok)' : 'var(--ng)';
+    vr.textContent = ok ? '✔ 一致しました（書きかえられていません）' : '✖ 一致しません（文章が書きかえられている可能性があります）';
+  };
+};
+
+// ---------- 起動 ----------
+renderHeader();
+if (!S.profile) { go('home'); profileModal(true); }
+else go('home');
+</script>
+</body>
+</html>
