@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>学びの振り返り プリント（A4両面）</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap">
+<style>
+  @page { size: A4 portrait; margin: 0; }
+  :root {
+    --ink: #1b2233;
+    --soft: #45506a;
+    --line: #6b7386;
+    --tint: #eef1f5;
+    --mint: #dff1e8;
+    --sky: #dcecf8;
+    --peach: #ffe6d8;
+    --lemon: #fff3c4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    font-family: "BIZ UDPGothic", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+    color: var(--ink);
+    font-size: 10.5pt;
+    line-height: 1.55;
+    background: #d9dce2;
+  }
+  .page {
+    width: 210mm; height: 297mm;
+    padding: 9mm 12mm 8mm;
+    background: #fff;
+    display: flex; flex-direction: column; gap: 2.9mm;
+    margin: 0 auto;
+    overflow: hidden;
+    page-break-after: always;
+  }
+  .page:last-child { page-break-after: auto; }
+  @media screen { .page { margin: 6mm auto; box-shadow: 0 1mm 4mm rgba(0,0,0,.18); } }
+
+  /* 見出しまわり */
+  .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 6mm; border-bottom: 0.8mm solid var(--ink); padding-bottom: 2mm; }
+  .head .kicker { font-size: 9pt; font-weight: 700; letter-spacing: .12em; color: var(--soft); }
+  .head h1 { font-size: 21pt; font-weight: 700; line-height: 1.2; }
+  .head .subtitle { font-size: 10.5pt; font-weight: 700; color: var(--soft); }
+  .name { font-size: 10pt; white-space: nowrap; padding-bottom: .6mm; }
+  .name span { display: inline-block; border-bottom: .3mm solid var(--ink); height: 6mm; vertical-align: bottom; }
+  h2 {
+    font-size: 11.5pt; font-weight: 700; line-height: 1.3;
+    background: var(--ink); color: #fff;
+    padding: 1.1mm 3mm; border-radius: 1.2mm;
+    display: flex; align-items: baseline; gap: 3mm;
+  }
+  h2 small { font-size: 9pt; font-weight: 400; }
+  section { display: flex; flex-direction: column; gap: 1.8mm; }
+  .small { font-size: 9pt; color: var(--soft); }
+  b { font-weight: 700; }
+
+  /* ゴール */
+  .goals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.5mm; }
+  .goal { border: .3mm solid var(--line); border-radius: 2mm; padding: 1.4mm 3mm; display: flex; gap: 2.5mm; align-items: center; }
+  .goal .n { font-size: 18pt; font-weight: 700; line-height: 1; }
+  .goal p { font-size: 10pt; line-height: 1.45; }
+
+  /* 表 */
+  table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+  th, td { border: .3mm solid var(--line); padding: .85mm 2.4mm; text-align: left; vertical-align: middle; }
+  th { background: var(--tint); font-weight: 700; font-size: 9.5pt; }
+  .flow td.koma { width: 9mm; text-align: center; font-weight: 700; font-size: 9.5pt; line-height: 1.25; padding: 1mm; }
+  .flow td.min { width: 15mm; text-align: center; font-weight: 700; font-size: 12pt; white-space: nowrap; }
+  .flow td.what { width: 54mm; font-weight: 700; }
+  .flow tr.talk td { background: var(--mint); }
+
+  /* まとめ方 */
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; }
+  .box { border: .3mm solid var(--line); border-radius: 2mm; padding: 1.8mm 3.2mm; }
+  .box h3 { font-size: 11.5pt; font-weight: 700; margin-bottom: .6mm; }
+  .box ul { padding-left: 4.4mm; }
+  .box li { font-size: 10pt; line-height: 1.5; }
+  .sky { background: var(--sky); }
+  .peach { background: var(--peach); }
+  .lemon { background: var(--lemon); }
+
+  /* 6つのこと */
+  .six { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2mm; }
+  .item { border: .3mm solid var(--line); border-radius: 2mm; padding: 1.6mm 2.6mm; display: flex; gap: 2.2mm; align-items: center; }
+  .item .n { font-size: 15pt; font-weight: 700; line-height: 1; width: 5mm; text-align: center; }
+  .item .t { font-size: 10.5pt; font-weight: 700; line-height: 1.3; }
+  .item .d { font-size: 8.8pt; color: var(--soft); line-height: 1.35; }
+
+  /* 約束・見るポイント */
+  .rules { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2mm; }
+  .rule { border: .3mm solid var(--line); border-radius: 2mm; padding: 1.8mm 2.8mm; }
+  .rule .t { font-size: 10.5pt; font-weight: 700; line-height: 1.35; }
+  .rule .d { font-size: 9pt; color: var(--soft); line-height: 1.45; }
+
+  /* 裏面：ワークシート */
+  .themes td { padding: 1mm 2.2mm; }
+  .themes td.chk { width: 8mm; text-align: center; font-size: 13pt; line-height: 1; }
+  .themes td.title { width: 47mm; font-weight: 700; }
+  .themes td.key { width: 39mm; font-size: 9.2pt; }
+  .themes td.seed { font-size: 9.2pt; color: var(--soft); }
+  .reason { display: flex; gap: 6mm; align-items: center; font-size: 10pt; }
+  .reason .sq { font-size: 13pt; line-height: 1; margin-right: 1mm; }
+  .write { border: .4mm solid var(--ink); border-radius: 2mm; position: relative; }
+  .write .lbl { position: absolute; left: 2.4mm; top: 1.2mm; font-size: 8.6pt; color: var(--soft); }
+  .hint { font-size: 9pt; color: var(--soft); }
+  .hint b { color: var(--ink); }
+  .steps { display: flex; align-items: center; gap: 1.6mm; font-size: 9.6pt; flex-wrap: wrap; }
+  .steps .st { border: .3mm solid var(--line); border-radius: 1.4mm; padding: .5mm 2.2mm; background: var(--tint); font-weight: 700; }
+  .steps .ar { color: var(--soft); }
+  .memo { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; flex: 1; }
+  .memo .col { border: .4mm solid var(--ink); border-radius: 2mm; display: flex; flex-direction: column; overflow: hidden; }
+  .memo .who { display: flex; align-items: center; gap: 2mm; padding: 1.2mm 2.6mm; background: var(--tint); border-bottom: .3mm solid var(--line); font-size: 9.6pt; }
+  .memo .who b { font-size: 10.5pt; }
+  .memo .who span { flex: 1; border-bottom: .3mm solid var(--ink); height: 5mm; }
+  .memo .cell { padding: 1mm 2.6mm; border-bottom: .3mm dashed var(--line); font-size: 8.8pt; color: var(--soft); }
+  .memo .cell:last-child { border-bottom: none; }
+  .grow { flex: 1; }
+  .grow2 { flex: 2; }
+</style>
+</head>
+<body>
+
+<!-- ============ 表面：授業ガイド ============ -->
+<div class="page" style="gap:4mm">
+  <div class="head">
+    <div>
+      <p class="kicker">看護科　授業ガイド</p>
+      <h1>学びの振り返り</h1>
+      <p class="subtitle">自分の問いを立てて、まとめて、語り合おう</p>
+    </div>
+    <p class="name">年 <span style="width:9mm"></span> 組 <span style="width:9mm"></span> 番 <span style="width:9mm"></span>　名前 <span style="width:48mm"></span></p>
+  </div>
+
+  <section>
+    <h2>今日のゴール</h2>
+    <div class="goals">
+      <div class="goal"><span class="n">1</span><p>これまでの学びから<br><b>自分の問い</b>を立てる</p></div>
+      <div class="goal"><span class="n">2</span><p>調べた<b>事実</b>と自分の<b>考え</b>を<br>分けてまとめる</p></div>
+      <div class="goal"><span class="n">3</span><p><b>1on1</b>で語り合い、もらった<br>視点を書き加える</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>100分の流れ</h2>
+    <table class="flow">
+      <tr><th colspan="2">時間</th><th>やること</th><th>ポイント</th></tr>
+      <tr><td class="koma" rowspan="3">1<br>コ<br>マ<br>目</td><td class="min">7分</td><td class="what">説明を聞く</td><td>流れ・まとめ方・約束を確認する</td></tr>
+      <tr><td class="min">13分</td><td class="what">テーマを選び、問いを立てる</td><td>裏面のステップ1・2に書く</td></tr>
+      <tr><td class="min">30分</td><td class="what">調べる・まとめる</td><td>iPadで調べ、レポートかスライドにまとめる</td></tr>
+      <tr><td class="koma" rowspan="3">2<br>コ<br>マ<br>目</td><td class="min">15分</td><td class="what">まとめの仕上げ</td><td><b>7割できていればOK</b>。残りは1on1のあとで</td></tr>
+      <tr class="talk"><td class="min">30分</td><td class="what">1on1で語り合う</td><td>準備5分 ＋ 2ラウンド（1ラウンド12分）。<b>2人と話す</b></td></tr>
+      <tr><td class="min">5分</td><td class="what">書き足して提出</td><td>「6 対話で変わったこと」を書き足して提出する</td></tr>
+    </table>
+    <p class="small">1on1は発表会ではありません。相手の質問や感想を、自分のまとめを仕上げる材料にします。</p>
+  </section>
+
+  <section>
+    <h2>まとめ方は2つから選ぶ</h2>
+    <div class="two">
+      <div class="box sky">
+        <h3>レポート</h3>
+        <ul>
+          <li><b>600字以上</b>（6番の追記は字数に含めない）</li>
+          <li>ClassiNOTEに入力、または原稿用紙に手書き</li>
+        </ul>
+      </div>
+      <div class="box peach">
+        <h3>スライド</h3>
+        <ul>
+          <li><b>枚数は自由</b>（目安は4〜6枚）</li>
+          <li>「自分の考え」のスライドは必ず入れる</li>
+          <li>文字が少ない分は、話して補う</li>
+        </ul>
+      </div>
+    </div>
+    <p class="small"><b>提出先：</b>ClassiNOTE（手書きレポートは原稿用紙で提出）</p>
+  </section>
+
+  <section>
+    <h2>必ず入れる6つのこと <small>レポートでもスライドでも同じです</small></h2>
+    <div class="six">
+      <div class="item"><span class="n">1</span><div><p class="t">選んだテーマと理由</p><p class="d">興味・モヤモヤ・深めたい</p></div></div>
+      <div class="item"><span class="n">2</span><div><p class="t">自分の問い</p><p class="d">「？」で終わる1文</p></div></div>
+      <div class="item"><span class="n">3</span><div><p class="t">調べたこと</p><p class="d">出典（サイト名・書名など）もつける</p></div></div>
+      <div class="item"><span class="n">4</span><div><p class="t">自分の考え</p><p class="d">今の時点での答え</p></div></div>
+      <div class="item"><span class="n">5</span><div><p class="t">まだ残っている問い</p><p class="d">答えが出なくてもOK</p></div></div>
+      <div class="item lemon"><span class="n">6</span><div><p class="t">対話で変わったこと</p><p class="d">1on1のあとに書く（100字くらい）</p></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>調べる・書くときの3つの約束</h2>
+    <div class="rules">
+      <div class="rule"><p class="t">1　個人がわかる情報は書かない</p><p class="d">実習で出会った患者さんや、実習先が特定できる内容は書きません。</p></div>
+      <div class="rule"><p class="t">2　事実と考えを分けて書く</p><p class="d">調べたことには出典をつけ、自分の考えと混ぜないようにします。</p></div>
+      <div class="rule"><p class="t">3　文章は自分の言葉で</p><p class="d">生成AIは調べる手助けまで。内容は自分で確かめ、自分で書きます。</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>先生が見るポイント</h2>
+    <div class="rules">
+      <div class="rule"><p class="t">問い</p><p class="d">調べて終わりではなく、自分の考えが必要な問いになっているか。</p></div>
+      <div class="rule"><p class="t">根拠</p><p class="d">調べた事実をもとに、自分の考えを説明できているか。</p></div>
+      <div class="rule"><p class="t">対話</p><p class="d">相手に質問や感想を伝え、もらった視点を追記に生かせたか。</p></div>
+    </div>
+  </section>
+</div>
+
+<!-- ============ 裏面：ワークシート ============ -->
+<div class="page">
+  <div class="head">
+    <div>
+      <p class="kicker">学びの振り返り　ワークシート</p>
+      <p class="subtitle" style="font-size:12.5pt;color:var(--ink)">問いを立てる → まとめる → 語り合う → 書き足す</p>
+    </div>
+    <p class="name">名前 <span style="width:48mm"></span></p>
+  </div>
+
+  <section>
+    <h2>ステップ1　テーマを1つ選ぶ <small>□にチェックを入れよう</small></h2>
+    <table class="themes">
+      <tr><th></th><th>授業で扱った作品</th><th>キーワード</th><th>問いのタネ（例）</th></tr>
+      <tr><td class="chk">□</td><td class="title">南田南弁護士は天才肌</td><td class="key">自閉スペクトラム症</td><td class="seed">「ふつう」は誰が決めているのだろう？</td></tr>
+      <tr><td class="chk">□</td><td class="title">アンメット</td><td class="key">記憶障害・脳神経外科</td><td class="seed">記憶を失っても「その人らしさ」は残る？</td></tr>
+      <tr><td class="chk">□</td><td class="title">私のママが決めたこと</td><td class="key">安楽死</td><td class="seed">最期を自分で決める人を、まわりはどう支える？</td></tr>
+      <tr><td class="chk">□</td><td class="title">ダウンタイム</td><td class="key">美容医療</td><td class="seed">病気ではない人への医療は、どこまでが「医療」？</td></tr>
+      <tr><td class="chk">□</td><td class="title">アンナチュラル</td><td class="key">法医解剖・洞察力</td><td class="seed">「観察する力」は看護にどう生きる？</td></tr>
+      <tr><td class="chk">□</td><td class="title">そのほか（　　　　　　　　　）</td><td class="key">コードブルー など</td><td class="seed">ほかの回で気になったことでもOK</td></tr>
+    </table>
+    <p class="reason"><b>選んだ理由：</b><span><span class="sq">□</span>興味がある</span><span><span class="sq">□</span>モヤモヤが残っている</span><span><span class="sq">□</span>もっと深めたい</span></p>
+  </section>
+
+  <section>
+    <h2>ステップ2　自分の問いを1文にする <small>「？」で終わる文で書こう</small></h2>
+    <div class="write" style="height:19mm"></div>
+    <p class="hint"><b>問いの型：</b>なぜ〜なのだろう？／〜は本当に正しい？／もし自分が〜だったら？／看護師として〜にどう関わる？</p>
+  </section>
+
+  <section>
+    <h2>ステップ3　調べる・まとめる <small>表面の「6つのこと」の1〜5を書く。7割できたら1on1へ</small></h2>
+  </section>
+
+  <section class="grow" style="min-height:0">
+    <h2>ステップ4　1on1で語り合う <small>2ラウンド。2人と話そう</small></h2>
+    <p class="steps"><b>1ラウンド12分：</b><span class="st">Aさんが発表 3分</span><span class="ar">▶</span><span class="st">Bさんが質問・感想 3分</span><span class="ar">▶</span><span class="st">交代して同じ流れ 6分</span></p>
+    <p class="hint"><b>聞き手は3つを伝える：</b>①なるほどと思ったこと　②もっと聞きたいこと　③自分ならこう考える</p>
+    <div class="memo">
+      <div class="col">
+        <p class="who"><b>1人目</b>　相手の名前 <span></span></p>
+        <p class="cell grow">相手の問い</p>
+        <p class="cell grow2">相手に伝えたこと（なるほど・もっと聞きたい・自分なら）</p>
+        <p class="cell grow2">自分がもらった質問・感想</p>
+      </div>
+      <div class="col">
+        <p class="who"><b>2人目</b>　相手の名前 <span></span></p>
+        <p class="cell grow">相手の問い</p>
+        <p class="cell grow2">相手に伝えたこと（なるほど・もっと聞きたい・自分なら）</p>
+        <p class="cell grow2">自分がもらった質問・感想</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>ステップ5　書き足して提出 <small>「6 対話で変わったこと」の下書き</small></h2>
+    <div class="write" style="height:23mm"><span class="lbl">話してみて、考えが変わったこと・深まったこと（変わらなかった人は、その理由）</span></div>
+    <p class="hint">ここに書いたことを、まとめの最後に<b>100字くらい</b>で書き足して提出します。<b>提出先：</b>ClassiNOTE（手書きは原稿用紙）</p>
+  </section>
+</div>
+
+</body>
+</html>
